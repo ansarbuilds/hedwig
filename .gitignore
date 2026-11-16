@@ -1,3 +1,9 @@
 .venv/
 __pycache__/
 .DS_Store
+
+# big stuff stays local or goes to Hugging Face
+checkpoints/
+*.bin
+data/*
+!data/input.txt

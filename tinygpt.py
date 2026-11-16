@@ -16,7 +16,7 @@ dropout    = 0.1
 batch_size = 64
 steps      = 3000
 lr         = 1e-3
-device = "mps" if torch.backends.mps.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # ---- The book: turn letters into numbers ----
 text = open("data/input.txt").read()
