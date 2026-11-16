@@ -1,0 +1,227 @@
+<title>How Hedwig Learns</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of "lessons", each with a hands-on toy; night-sky owl palette */
+:root{
+  --bg:#f3f5fb; --surface:#ffffff; --ink:#1a2140; --muted:#5b6283; --line:#d9ddec;
+  --accent:#3b4fd8; --accent-soft:#e3e7ff; --amber:#c27a00; --amber-soft:#fff1d6; --good:#1f8a5b; --bad:#c0392b;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1226; --surface:#171c36; --ink:#e8ebfa; --muted:#9aa1c4; --line:#2b3255;
+  --accent:#8b9bff; --accent-soft:#232a5a; --amber:#ffbe4d; --amber-soft:#3a2d12; --good:#4fd39a; --bad:#ff7b6b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1226; --surface:#171c36; --ink:#e8ebfa; --muted:#9aa1c4; --line:#2b3255;
+  --accent:#8b9bff; --accent-soft:#232a5a; --amber:#ffbe4d; --amber-soft:#3a2d12; --good:#4fd39a; --bad:#ff7b6b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
+main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.75rem;font-weight:700}
+h3{font-size:1.15rem;font-weight:700}
+p{margin:0;max-width:65ch}
+section{display:flex;flex-direction:column;gap:16px}
+.lesson{font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.lead{font-size:1.15rem;color:var(--muted)}
+.mono{font-family:var(--mono)}
+.toy{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.note{background:var(--amber-soft);border-radius:10px;padding:14px 16px;font-size:.95rem}
+.note b{color:var(--amber)}
+button{font:inherit;font-weight:700;background:var(--accent);color:var(--surface);border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* knob */
+.knobwrap{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+@media (max-width:520px){.knobwrap{grid-template-columns:1fr;justify-items:center}}
+.dial{width:120px;height:120px;border-radius:50%;background:var(--accent-soft);border:3px solid var(--accent);position:relative}
+.dial::after{content:"";position:absolute;left:50%;top:10px;width:4px;height:48px;margin-left:-2px;background:var(--accent);border-radius:2px;transform-origin:50% 50px;transform:rotate(var(--rot,0deg));transition:transform .35s}
+.sentence{font-family:var(--mono);font-size:1.1rem}
+.bars{display:flex;flex-direction:column;gap:6px;min-width:0}
+.bar{display:grid;grid-template-columns:70px 1fr 48px;gap:8px;align-items:center;font-family:var(--mono);font-size:.85rem}
+.track{height:14px;background:var(--line);border-radius:7px;overflow:hidden}
+.fill{height:100%;background:var(--muted);transition:width .35s}
+.bar.right .fill{background:var(--good)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* loop */
+.loop{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:600px){.loop{grid-template-columns:1fr 1fr}}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.step .n{font-family:var(--mono);font-size:.75rem;color:var(--accent);font-weight:600}
+.step p{font-size:.92rem;color:var(--muted)}
+
+/* chart */
+.chartbox{overflow-x:auto}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
+
+/* scale */
+.scale{display:flex;flex-direction:column;gap:10px}
+.srow{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+@media (max-width:520px){.srow{grid-template-columns:1fr}}
+.slabel{font-weight:700;font-size:.95rem}
+.slabel small{display:block;font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.8rem}
+.sbar{height:22px;border-radius:6px;background:var(--accent);min-width:4px}
+.sbar.us{background:var(--amber)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main>
+<header style="display:flex;flex-direction:column;gap:14px">
+  <div class="lesson">A field guide for new owl trainers</div>
+  <h1>How Hedwig Learns</h1>
+  <p class="lead">What a "knob" is, what "training" really does, and how a brain grows from one knob to 100 million. Play with the toys as you go.</p>
+</header>
+
+<section>
+  <div class="lesson">Lesson 1 · The guessing game</div>
+  <h2>An LLM only plays one game</h2>
+  <p>It looks at some text and guesses what comes next. That's it. Hedwig guesses the next <b>letter</b>. Fable guesses the next <b>word piece</b>. Every answer you've ever gotten from a chatbot was built one guess at a time.</p>
+  <div class="toy">
+    <div class="sentence">peanut butter and <span style="color:var(--accent);font-weight:700">j</span><span style="color:var(--muted)">_</span></div>
+    <p style="color:var(--muted);font-size:.95rem">Hedwig must guess the next letter. A smart guess is "e" (for "jelly").</p>
+  </div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 2 · What a knob is</div>
+  <h2>A knob is just one number</h2>
+  <p>Inside Hedwig there are numbers like <span class="mono">0.37</span> or <span class="mono">-1.2</span>. Each one nudges a guess a little. Turn it one way and "e" gets more likely; turn it the other way and "x" does. Engineers call these numbers <b>parameters</b> or <b>weights</b>. We call them knobs.</p>
+  <div class="toy">
+    <h3>Try it: one knob, three guesses</h3>
+    <div class="knobwrap">
+      <div class="dial" id="dial" aria-hidden="true"></div>
+      <div class="bars" id="bars"></div>
+    </div>
+    <label for="knob" class="mono" style="font-size:.85rem">Knob value: <b id="kval">-2.0</b></label>
+    <input type="range" id="knob" min="-4" max="4" step="0.1" value="-2">
+    <p style="font-size:.95rem">Drag the slider. When the knob is set right, the green bar (the correct letter "e") is the biggest. That means Hedwig guesses well.</p>
+  </div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 3 · What training is</div>
+  <h2>Training means turning the knobs, automatically, millions of times</h2>
+  <p>You turned the knob by hand. Training does the same thing, but the computer does it, for every knob at once, over and over. Here's one round:</p>
+  <div class="loop">
+    <div class="step"><span class="n">1 · Read</span><h3>Show a snippet</h3><p>Take 128 letters of Shakespeare.</p></div>
+    <div class="step"><span class="n">2 · Guess</span><h3>Predict</h3><p>Guess each next letter using today's knobs.</p></div>
+    <div class="step"><span class="n">3 · Check</span><h3>Score it</h3><p>Compare with the real letters. How wrong was it?</p></div>
+    <div class="step"><span class="n">4 · Nudge</span><h3>Turn knobs</h3><p>Turn every knob a tiny bit in the direction that would've been less wrong.</p></div>
+  </div>
+  <div class="toy">
+    <h3>Try it: let the computer train the knob</h3>
+    <div class="row">
+      <button id="trainBtn" type="button">Train 1 step</button>
+      <button id="train10" type="button" class="ghost">Train 10 steps</button>
+      <button id="reset" type="button" class="ghost">Scramble knob</button>
+    </div>
+    <p class="mono" id="trainlog" style="font-size:.9rem">Step 0 · knob -2.0 · wrongness 2.31</p>
+    <p style="font-size:.95rem">Each step checks how wrong the guess was and nudges the knob a little. Watch the dial above move and the green bar grow. This "how wrong" number is exactly the <b>test score</b> you see in Hedwig's training tab.</p>
+  </div>
+  <div class="note"><b>The secret trick:</b> the math tells the computer which way to turn each knob without trying both ways. It's called <b>backpropagation</b>. It's why we can tune millions of knobs instead of just one.</div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 4 · Hedwig's real report card</div>
+  <h2>Hedwig is doing this right now on your Mac</h2>
+  <p>These are Hedwig's actual test scores from the training run so far. Lower means smarter. A score of 4.2 means random guessing; about 1.5 means it has learned words, names and the shape of a play.</p>
+  <div class="toy chartbox"><svg id="chart" viewBox="0 0 640 260" width="100%" role="img" aria-label="Hedwig test score dropping from 4.39 to about 1.52 over 1250 steps"></svg></div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 5 · Where the 4.8 million knobs live</div>
+  <h2>Knobs come in groups, like Lego bricks</h2>
+  <p>Nobody places 4.8 million knobs one by one. You pick a few settings (how many layers, how big each layer is), and the knobs appear automatically. Here's Hedwig's brain, counted from its real settings:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Part of the brain</th><th>What it does</th><th class="num">Knobs</th></tr></thead>
+    <tbody>
+      <tr><td>Letter dictionary</td><td>Turns each of 65 letters into a list of 256 numbers</td><td class="num">16,640</td></tr>
+      <tr><td>Position tags</td><td>Remembers where each letter sits (1st, 2nd … 128th)</td><td class="num">32,768</td></tr>
+      <tr><td>6 thinking layers</td><td>"Attention" (which earlier letters matter?) + "thinking" (mix it all up). ~790k each.</td><td class="num">4,738,560</td></tr>
+      <tr><td>Final guesser</td><td>Turns the thoughts into a score for each of 65 letters</td><td class="num">17,217</td></tr>
+      <tr><th>Total</th><th></th><th class="num">≈ 4,805,185</th></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><b>The growth rule:</b> make each layer twice as wide and you get about <b>4×</b> the knobs. Stack twice as many layers and you get <b>2×</b>. That's how you go from Hedwig to GPT-2: same Lego bricks, bigger and more of them.</div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 6 · From 1 knob to 100 million and beyond</div>
+  <h2>Same recipe, very different sizes</h2>
+  <p>These bars use a "times-ten" ruler: every extra chunk of bar means <b>10× more knobs</b>. On a normal ruler, Hedwig would be thinner than a hair next to Fable.</p>
+  <div class="toy scale" id="scale"></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Brain</th><th>Reads</th><th>Where it trains</th><th class="num">Time</th></tr></thead>
+    <tbody>
+      <tr><td>Hedwig</td><td>1 MB Shakespeare</td><td>Your MacBook</td><td class="num">~15 min</td></tr>
+      <tr><td>MiniMind</td><td>A few GB of text</td><td>Your MacBook</td><td class="num">~1–2 days</td></tr>
+      <tr><td>GPT-2 Small</td><td>~40 GB of web pages</td><td>Your MacBook (slowly)</td><td class="num">~1–2 months</td></tr>
+      <tr><td>GPT-2 XL</td><td>~40 GB of web pages</td><td>Needs bigger GPUs</td><td class="num">years on a laptop</td></tr>
+      <tr><td>Fable-class</td><td>A big slice of the internet</td><td>Data centres</td><td class="num">months, thousands of GPUs</td></tr>
+    </tbody>
+  </table></div>
+  <p style="color:var(--muted);font-size:.9rem">The Mac times are rough estimates. Big commercial models don't publish their size, so the last bar is a ballpark.</p>
+</section>
+
+<section>
+  <div class="lesson">Recap</div>
+  <h2>The whole thing in four lines</h2>
+  <p>1. A <b>knob</b> is one number inside the brain.<br>2. The brain's job is to <b>guess the next letter</b>.<br>3. <b>Training</b> = guess, check how wrong, nudge every knob a little, repeat thousands of times.<br>4. <b>More knobs + more reading = a smarter brain</b>, but it needs a bigger computer.</p>
+</section>
+</main>
+
+<script>
+(function(){
+  // one-knob model: logits for letters e,x,a as functions of knob w
+  const letters=[{c:'e',f:w=>1.5*w,right:true},{c:'x',f:w=>-1.2*w,right:false},{c:'a',f:w=>0.3,right:false}];
+  const knob=document.getElementById('knob'), kval=document.getElementById('kval'), bars=document.getElementById('bars'), dial=document.getElementById('dial'), log=document.getElementById('trainlog');
+  let w=-2, steps=0;
+  bars.innerHTML=letters.map((l,i)=>`<div class="bar ${l.right?'right':''}"><span>"${l.c}"</span><div class="track"><div class="fill" id="f${i}"></div></div><span id="p${i}"></span></div>`).join('');
+  function probs(w){const z=letters.map(l=>Math.exp(l.f(w)));const s=z.reduce((a,b)=>a+b);return z.map(v=>v/s)}
+  function render(){
+    const p=probs(w);
+    p.forEach((v,i)=>{document.getElementById('f'+i).style.width=(v*100).toFixed(1)+'%';document.getElementById('p'+i).textContent=Math.round(v*100)+'%'});
+    knob.value=w; kval.textContent=w.toFixed(1); dial.style.setProperty('--rot',(w*33)+'deg');
+    log.textContent=`Step ${steps} · knob ${w.toFixed(2)} · wrongness ${(-Math.log(p[0])).toFixed(2)}`;
+  }
+  function trainStep(){const p=probs(w);const grad=-(1.5-(p[0]*1.5+p[1]*-1.2));w=Math.max(-4,Math.min(4,w-0.6*grad));steps++;render()}
+  knob.addEventListener('input',()=>{w=parseFloat(knob.value);render()});
+  document.getElementById('trainBtn').onclick=trainStep;
+  document.getElementById('train10').onclick=()=>{let n=0;const t=setInterval(()=>{trainStep();if(++n>=10)clearInterval(t)},120)};
+  document.getElementById('reset').onclick=()=>{w=-2-Math.random()*1.5;steps=0;render()};
+  render();
+
+  // real loss chart
+  const pts=[[0,4.388],[250,1.964],[500,1.738],[750,1.632],[1000,1.569],[1250,1.523]];
+  const svg=document.getElementById('chart'), X=s=>60+s/3000*560, Y=v=>220-(v/4.5)*190;
+  let g='';
+  [0,1,2,3,4].forEach(v=>{g+=`<line x1="60" x2="620" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="50" y="${Y(v)+4}" text-anchor="end">${v}</text>`});
+  [0,1000,2000,3000].forEach(s=>{g+=`<text x="${X(s)}" y="242" text-anchor="middle">${s}</text>`});
+  g+=`<text x="340" y="258" text-anchor="middle">training step (goal: 3,000)</text>`;
+  g+=`<line x1="60" x2="620" y1="${Y(4.17)}" y2="${Y(4.17)}" stroke="var(--bad)" stroke-dasharray="4 4"/><text x="616" y="${Y(4.17)-6}" text-anchor="end" style="fill:var(--bad)">random guessing ≈ 4.17</text>`;
+  const d=pts.map((p,i)=>(i?'L':'M')+X(p[0])+' '+Y(p[1])).join(' ');
+  g+=`<path d="${d} L${X(1250)} 220 L60 220 Z" fill="var(--accent-soft)" stroke="none"/>`;
+  g+=`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
+  pts.forEach(p=>{g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="var(--accent)"/>`});
+  const last=pts[pts.length-1];
+  g+=`<text x="${X(last[0])+8}" y="${Y(last[1])-8}" style="fill:var(--ink);font-weight:600">${last[1]} (still learning)</text>`;
+  svg.innerHTML=g;
+
+  // log-scale sizes
+  const sizes=[['1 knob','our toy above',1,0],['Hedwig','your Mac, today',4.8e6,1],['MiniMind','26 million',2.6e7,0],['GPT-1 / GPT-2 Small','117–124 million',1.24e8,0],['GPT-2 XL','1.5 billion',1.5e9,0],['Fable-class','hundreds of billions (est.)',3e11,0]];
+  const max=Math.log10(3e11);
+  document.getElementById('scale').innerHTML=sizes.map(s=>`<div class="srow"><div class="slabel">${s[0]}<small>${s[1]}</small></div><div class="sbar ${s[3]?'us':''}" style="width:${Math.max(1,Math.log10(s[2])/max*100)}%"></div></div>`).join('');
+})();
+</script>
