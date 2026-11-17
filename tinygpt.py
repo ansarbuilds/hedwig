@@ -5,7 +5,7 @@ It reads Shakespeare one letter at a time and learns to guess the next letter.
 Run:   python tinygpt.py train      (teach the brain, saves brain.pt)
        python tinygpt.py talk       (let the brain write something)
 """
-import sys, time, torch, torch.nn as nn, torch.nn.functional as F
+import os, sys, time, torch, torch.nn as nn, torch.nn.functional as F
 
 # ---- Settings (the "size" of the brain) ----
 block_size = 128   # how many letters it can remember at once
@@ -16,6 +16,8 @@ dropout    = 0.1
 batch_size = 64
 steps      = 3000
 lr         = 1e-3
+ckpt_path  = "ckpt.pt"   # the save-point file
+ckpt_every = 250         # save every N steps
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 # ---- The book: turn letters into numbers ----
@@ -78,16 +80,37 @@ def train():
     print(f"Brain size: {sum(p.numel() for p in model.parameters())/1e6:.1f}M knobs, on {device}")
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, steps)
+
+    # ---- Resume if a save point exists ----
+    start_step = 0
+    if os.path.exists(ckpt_path):
+        ckpt = torch.load(ckpt_path, map_location=device)
+        model.load_state_dict(ckpt["model"])
+        opt.load_state_dict(ckpt["opt"])
+        sched.load_state_dict(ckpt["sched"])
+        start_step = ckpt["step"]
+        print(f"Resuming from step {start_step}")
+
     t0 = time.time()
-    for step in range(steps + 1):
+    for step in range(start_step, steps + 1):
         if step % 250 == 0:
             model.eval()
             with torch.no_grad():
                 vl = sum(model(*get_batch(val_data))[1].item() for _ in range(20)) / 20
             print(f"step {step:5d} | test score (lower=smarter) {vl:.3f} | {time.time()-t0:.0f}s", flush=True)
             model.train()
+
+        # ---- Save point ----
+        if step > start_step and step % ckpt_every == 0:
+            ckpt = {"model": model.state_dict(), "opt": opt.state_dict(),
+                    "sched": sched.state_dict(), "step": step}
+            torch.save(ckpt, ckpt_path + ".tmp")
+            os.replace(ckpt_path + ".tmp", ckpt_path)
+            print(f"  💾 saved checkpoint at step {step}")
+
         _, loss = model(*get_batch(train_data))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
+
     torch.save(model.state_dict(), "brain.pt")
     print("Saved brain.pt!")
 

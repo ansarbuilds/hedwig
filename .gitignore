@@ -7,3 +7,5 @@ checkpoints/
 *.bin
 data/*
 !data/input.txt
+ckpt.pt
+ckpt.pt.tmp

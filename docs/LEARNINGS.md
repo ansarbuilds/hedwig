@@ -88,3 +88,17 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
 - Renting beats buying for occasional big runs.
 - GPU rental as a business is weak at current prices (an RTX 5090 cost ~CAD $6–13k in late 2026 during a shortage). Building *with* AI is the better path.
 - Don't use the company laptop for personal projects.
+
+## Checkpointing (save + resume)
+
+- Saves model + optimizer + scheduler + step to `ckpt.pt` every 250 steps
+
+- Writes to `.tmp` first, then renames, so a crash mid-save can't corrupt it
+
+- Test: Ctrl+C after step 750 (score 1.619) → reran → "Resuming from step 750", score 1.622 ✅
+
+- Final score after 3000 steps: 1.481 (vs 1.48 without interruption, so resume works ✅)
+
+- MacBook Air slows down as it heats up (no fan): ~66s → ~110s per 250 steps
+
+- Start a fresh run: `rm ckpt.pt`, otherwise `train` resumes from the last save
