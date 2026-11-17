@@ -98,9 +98,11 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
 - MacBook Air slows down as it heats up (no fan): ~66s → ~110s per 250 steps.
 - Start a fresh run: `rm ckpt.pt`, otherwise `train` resumes from the last save.
 
-## 11. BPE tokenizer from scratch (standalone)
+## 11. BPE tokenizer (512 vocab) wired into `tinygpt.py`
 
-- Built in `tokenizer.py`: starts from 256 raw UTF-8 byte tokens and repeatedly merges the most frequent neighbouring pair.
-- Trained on `data/input.txt` with `vocab_size = 512` (256 byte tokens + 256 merges) and saved to `tokenizer.json`.
-- Sample check (`ROMEO:\nBut soft, what light through yonder window breaks?`): 57 letters → 32 pieces, round-trip encode/decode exact (`True`).
-- Not yet wired into `tinygpt.py`.
+- Built from scratch in `tokenizer.py`: starts from 256 raw UTF-8 byte tokens and merges the 256 most common pairs (`vocab_size = 512`, saved in `tokenizer.json`).
+- Compresses `data/input.txt` (`1,115,394` chars) to `568,210` tokens (**1.96× shorter**; `511,389` train / `56,821` val), cached to `data/tokens_512.pt`.
+- Brain grew from `4.8M` to `5,034,496` (`~5.0M`) knobs; trained 3,000 steps in `928 s` on M4 (`mps`).
+- **Measured val loss:** `0: 6.388 · 250: 3.473 · 500: 3.102 · 750: 3.007 · 1000: 3.020 · 1250: 3.086 · 1500: 3.182 · 1750: 3.211 · 2000: 3.330 · 2250: 3.398 · 2500: 3.457 · 2750: 3.432 · 3000: 3.429`
+- **Key lesson (overfitting):** Best score was at **step 750 (`3.007`**, ≈ `1.534` per-char equivalent when divided by `1.96`), then test score climbed to `3.429`. Because BPE compressed the book to `511k` tokens, 3,000 steps (~48 passes) made the 5M-knob brain memorize training lines instead of generalizing.
+- **Samples:** Cleaner spelling and real Shakespeare names/scenes (`Mercutio`, `FRIAR PETER`, `DUKE VINCENTIO`, `SICINIUS`, `MENENIUS`).

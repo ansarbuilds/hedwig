@@ -1,14 +1,15 @@
 """
 Hedwig - your very own mini LLM!
 
-It reads Shakespeare one letter at a time and learns to guess the next letter.
+It reads Shakespeare as BPE word-pieces and learns to guess the next piece.
 Run:   python tinygpt.py train      (teach the brain, saves brain.pt)
        python tinygpt.py talk       (let the brain write something)
 """
 import os, sys, time, torch, torch.nn as nn, torch.nn.functional as F
+import tokenizer
 
 # ---- Settings (the "size" of the brain) ----
-block_size = 128   # how many letters it can remember at once
+block_size = 128   # how many pieces it can remember at once
 n_embd     = 256   # how big each "thought" is
 n_head     = 4     # how many ways it looks at the text at once
 n_layer    = 6     # how many thinking layers stacked up
@@ -18,18 +19,26 @@ steps      = 3000
 lr         = 1e-3
 ckpt_path  = "ckpt.pt"   # the save-point file
 ckpt_every = 250         # save every N steps
+tok_path   = "tokenizer.json"
+cache_path = "data/tokens_512.pt"
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
-# ---- The book: turn letters into numbers ----
-text = open("data/input.txt").read()
-chars = sorted(set(text))
-stoi = {c: i for i, c in enumerate(chars)}
-itos = {i: c for c, i in stoi.items()}
-encode = lambda s: [stoi[c] for c in s]
-decode = lambda l: "".join(itos[i] for i in l)
-data = torch.tensor(encode(text))
-split = int(0.9 * len(data))
-train_data, val_data = data[:split], data[split:]
+# ---- The tokenizer: turn text into numbers (0..vocab_size-1) ----
+merges, vocab = tokenizer.load(tok_path)
+vocab_size = len(vocab)
+encode = lambda s: tokenizer.encode(s, merges)
+decode = lambda l: tokenizer.decode(l, vocab)
+
+def load_data():
+    """Encode Shakespeare once with BPE and cache it so training starts fast."""
+    if os.path.exists(cache_path):
+        data = torch.load(cache_path)
+    else:
+        print("Encoding data/input.txt with BPE (one-time ~30s, caching for future runs)...", flush=True)
+        data = torch.tensor(encode(open("data/input.txt").read()), dtype=torch.long)
+        torch.save(data, cache_path)
+    split = int(0.9 * len(data))
+    return data[:split], data[split:]
 
 def get_batch(d):
     ix = torch.randint(len(d) - block_size - 1, (batch_size,))
@@ -56,11 +65,11 @@ class Block(nn.Module):
 class TinyGPT(nn.Module):
     def __init__(self):
         super().__init__()
-        self.tok = nn.Embedding(len(chars), n_embd)
+        self.tok = nn.Embedding(vocab_size, n_embd)
         self.pos = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(*[Block() for _ in range(n_layer)])
         self.ln = nn.LayerNorm(n_embd)
-        self.head = nn.Linear(n_embd, len(chars))
+        self.head = nn.Linear(n_embd, vocab_size)
     def forward(self, idx, targets=None):
         T = idx.size(1)
         x = self.tok(idx) + self.pos(torch.arange(T, device=idx.device))
@@ -76,6 +85,7 @@ class TinyGPT(nn.Module):
         return idx
 
 def train():
+    train_data, val_data = load_data()
     model = TinyGPT().to(device)
     print(f"Brain size: {sum(p.numel() for p in model.parameters())/1e6:.1f}M knobs, on {device}")
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
