@@ -9,9 +9,9 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 - [x] Pushed to GitHub (private)
 
 ## Phase 1: Better foundations (Air, $0)
-- [ ] **Reinstall the env**: `python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt`
-- [ ] **Add checkpointing + resume** to `tinygpt.py` (save every N steps; needed for any long run)
-- [ ] **Write a BPE tokenizer from scratch** (`tokenizer.py`). Follow Karpathy's "Let's build the GPT Tokenizer" / `minbpe`. Train it on your data, vocab ~4k–8k.
+- [x] **Reinstall the env**: `python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt`
+- [x] **Add checkpointing + resume** to `tinygpt.py` (save every 250 steps via atomic `.tmp` rename to `ckpt.pt`, auto-resume)
+- [x] **Write a BPE tokenizer from scratch** (`tokenizer.py`). Followed Karpathy / `minbpe` style and trained `tokenizer.json` on Tiny Shakespeare (`vocab_size=512`; can scale to ~4k–8k later).
 - [ ] **Switch Hedwig to the BPE tokenizer** and compare loss and samples vs the character version
 - [ ] **Modernize the architecture** one change at a time, measuring each: RoPE → RMSNorm → SwiGLU → bf16 autocast → `F.scaled_dot_product_attention`
 - [ ] (Optional) Port to **MLX** and compare speed vs PyTorch MPS

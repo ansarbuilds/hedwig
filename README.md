@@ -22,13 +22,16 @@ python3.12 -m venv .venv
 
 | Path | What |
 |---|---|
-| `tinygpt.py` | Model, training loop, text generation |
+| `tinygpt.py` | Model, training loop with checkpoint/resume, text generation |
+| `tokenizer.py` | From-scratch BPE tokenizer (`minbpe` style) |
+| `tokenizer.json` | Learned BPE merges (512 vocab on Tiny Shakespeare) |
 | `brain.pt` | Trained weights (18 MB) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Visual explainer: knobs, training, model sizes |
 | `docs/LEARNINGS.md` | Concepts and measured results |
 | `docs/ROADMAP.md` | What to build next |
 | `docs/CLOUD_GPU_100.md` | How to spend $100 of cloud GPU time |
+| `logs/DEVLOG.md` | Automatic daily dev log (updated on push) |
 | `AGENTS.md` | Context for AI coding assistants |
 
 ## Where it's going

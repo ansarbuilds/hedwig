@@ -6,9 +6,11 @@ Hedwig is a learning project: build a ChatGPT-style language model from scratch,
 Long-term goal: a focused **storytelling** model that runs offline on a 16 GB MacBook Air M4 and an iPhone.
 
 ## Current state
-- `tinygpt.py`: char-level GPT, 4.8M params, ~120 lines. `python tinygpt.py train` / `python tinygpt.py talk "ROMEO:"`
-- `brain.pt`: trained weights (18 MB, loss 1.48 on Tiny Shakespeare)
+- `tinygpt.py`: char-level GPT, 4.8M params, ~127 lines, with checkpoint save/resume every 250 steps (`ckpt.pt`). `.venv/bin/python tinygpt.py train` / `.venv/bin/python tinygpt.py talk "ROMEO:"`
+- `tokenizer.py` & `tokenizer.json`: from-scratch BPE tokenizer (512 vocab: 256 bytes + 256 merges), tested standalone, not yet wired into `tinygpt.py`
+- `brain.pt`: trained weights (18 MB, loss 1.481 on Tiny Shakespeare)
 - `data/input.txt`: Tiny Shakespeare
+- `logs/DEVLOG.md`: automatic daily commit log via `.github/workflows/devlog.yml`
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
 - `how-hedwig-learns.html`: visual explainer (static page)
 
@@ -26,5 +28,5 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
 ## Next task (see ROADMAP Phase 1)
-1. Add checkpoint save/resume to `tinygpt.py`.
-2. Write a from-scratch BPE tokenizer (`tokenizer.py`) and retrain.
+1. Wire `tokenizer.py` (`tokenizer.json`) into `tinygpt.py` (or scale BPE vocab to ~4k–8k) and retrain, comparing loss and samples vs the char-level baseline.
+2. Modernize the architecture one change at a time (RoPE → RMSNorm → SwiGLU → bf16 autocast → `F.scaled_dot_product_attention`).
