@@ -10,3 +10,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 
 ## 2026-11-16
 - **21:32** Add checkpoint save/resume (Ctrl+C at 750, resumed 1.622, final 1.481) and automatic dev log (`9590f26`)
+- **21:55** Add BPE tokenizer from scratch: 512 vocab, 1.96x shorter, round trip OK (`04eaa40`)
