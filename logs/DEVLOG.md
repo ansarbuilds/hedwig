@@ -24,3 +24,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **23:00** Add sys import to app.py (`2bf602d`)
 - **23:04** Document full progress (v1 -> v3 SFT/int8/int4/UI), zsh Mac next steps, and Dec 2026 cloud GPU plan (`b6b6f39`)
 - **23:22** Complete Stage 3 DPO (dpo.py, brain_dpo.pt, 91.7% preference win-rate) and add to Mac Chat UI (`a5b12bc`)
+
+## 2026-11-19
+- **00:17** Refresh how-hedwig-learns.html, add 1-command cloud_train.sh, and add export_iphone.py (`118ab51`)
