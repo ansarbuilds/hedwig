@@ -27,3 +27,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 
 ## 2026-11-19
 - **00:17** Refresh how-hedwig-learns.html, add 1-command cloud_train.sh, and add export_iphone.py (`118ab51`)
+- **00:25** Add KV cache (89 tok/s, 1.89x faster), top-k + repetition penalty, and word-by-word streaming in app.py (`79e2742`)
