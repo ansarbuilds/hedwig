@@ -13,3 +13,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **21:55** Add BPE tokenizer from scratch: 512 vocab, 1.96x shorter, round trip OK (`04eaa40`)
 - **23:06** Refresh docs for checkpointing and BPE tokenizer (`b0b4889`)
 - **23:53** Wire 512-vocab BPE into tinygpt: best val 3.007 at step 750, overfit to 3.429 (`dac40fe`)
+
+## 2026-11-18
+- **20:25** Add best-val brain.pt saving and RoPE (3.013 at step 500 vs 3.007 at step 750) (`b20f173`)
