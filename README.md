@@ -41,7 +41,8 @@ python3.12 -m venv .venv
 .venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
 .venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
 .venv/bin/python ssd_runner.py                                       # one layer at a time from SSD vs all-in-RAM
-bash cloud_train.sh                                                  # 1-command end-to-end pipeline (or `bash cloud_train.sh --124m` on cloud GPU)
+bash cloud_train.sh --dry-run                                        # 2-step rehearsal in dry_run/ (does not touch real brains)
+bash cloud_train.sh                                                  # rented GPU: full pipeline (or `--124m` for the 91.3M brain)
 ```
 
 ## Files
@@ -57,7 +58,7 @@ bash cloud_train.sh                                                  # 1-command
 | `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 7 brains, word streaming, & 🔬 Live Brain X-Ray |
 | `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
 | `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
-| `cloud_train.sh` | 1-command Cloud GPU training script (`--124m` scales to GPT-2 Small size for Dec 2026) |
+| `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` is the 91.3M scale-up; restarts resume |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
@@ -82,5 +83,6 @@ bash cloud_train.sh                                                  # 1-command
   2. **Apple MLX vs PyTorch MPS benchmark:** Compare Apple's native Silicon framework against PyTorch `mps` on the 13.8M Transformer.
   3. **Second-language / low-resource Hedwig:** Train Hedwig on a non-English language using the same UTF-8 byte-level BPE tokenizer.
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
-  1. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).
-  2. Run `bash cloud_train.sh --124m` to scale Hedwig up to ~115M–124M parameters (GPT-2 Small size) on `500 MB – 1.9 GB` of TinyStories + Project Gutenberg (plus Karpathy's `nanochat` speedrun), copy weights back to Mac, and quantize for Mac & iPhone. See [docs/ROADMAP.md](docs/ROADMAP.md).
+  1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
+  2. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).
+  3. Run `bash cloud_train.sh --124m` for the 91.3M brain (12 layers, 768 wide, 500 MB of stories), copy weights back to the Mac, and quantize. See [docs/ROADMAP.md](docs/ROADMAP.md).

@@ -246,3 +246,21 @@ Picture six notebooks stacked on your desk. Normally Hedwig keeps all six open (
 | bytes read from SSD | `0` | `1,719 MB` (`21.5 MB` per word: all 6 layer files) |
 
 What this teaches: on a `28 MB` brain the drawer trick barely moves the process RAM number, because PyTorch itself is already ~`370 MB`. The speed cost is real — every new word re-reads six small files (`80 × 6 × 3.58 MB`). The same idea pays off when the brain is bigger than RAM (a multi-gigabyte model on a phone, or the Dec 2026 cloud brain if it outgrows a small machine). Run it again with `.venv/bin/python ssd_runner.py`.
+
+## 25. Cloud script rehearsal (`cloud_train.sh --dry-run`) ✅
+
+The rented-GPU script had never been run as one command. A full run on the Mac would also have overwritten `brain.pt`. The rehearsal copies the scripts into `dry_run/` (gitignored), trains for **2 steps** on a **4 MB** story slice, and leaves the real brains alone. Their file timestamps were identical before and after (`brain.pt`, `brain_chat.pt`, `brain_dpo.pt`).
+
+What changed in the script, and what the rehearsal measured:
+
+| | Before | After this rehearsal |
+|---|---|---|
+| Launch on the Mac | Would train in the real folder | Refuses, and points at `--dry-run` |
+| Restart after a crash | Deleted `ckpt.pt`, `ckpt_sft.pt`, `ckpt_dpo.pt` and started over | Keeps the saves. Second launch printed `Resuming from step 2`, `Resuming SFT from step 2`, `Resuming DPO from step 2` |
+| Second data prep | Re-downloaded and re-tokenized | Printed `Stories already prepared` and skipped |
+| `--124m` text replace | If a line did not match, it kept training the small model and said nothing | Stops if the line is missing. A throwaway copy really became **91,286,272 knobs** (`768` wide, `12` heads, `12` layers, `6,000` steps) |
+| Best-brain save | Hardcoded to every 250 steps, so a 2-step run never wrote `brain.pt` | Uses `ckpt_every`. On the real Mac config that is still `250`, so a normal training run saves on the same steps as before |
+
+The 2-step sandbox run finished in **92 s** on the M4 and wrote all five brain files plus the three checkpoints. Scores are meaningless at 2 steps (pretrain val `8.499 → 7.556`). The point of the run was that every stage started, saved, and resumed.
+
+Still open before paying for a GPU: a GitHub token so the private repo can be cloned, and whether `6,000` steps (`~49M` tokens) is enough to judge a `91.3M` model. The `~180 MB` 16-bit file must come home with `scp`, not git. Quantize still scores `brain_chat.pt`; `brain_dpo.pt` is saved beside it.

@@ -31,18 +31,22 @@ Rough prices: RTX 4090/5090 ~$0.30–0.70/hr · A100 ~$1–2/hr · H100 ~$2–4/
 Tip: debug everything on the Mac or a cheap GPU first. Only rent 8×H100 when the script already runs end to end.
 
 ## Safety checklist (read before every run)
-- [ ] Code already tested locally on a tiny config
-- [ ] Checkpoints save regularly
+- [x] Code already tested locally on a tiny config (`bash cloud_train.sh --dry-run`, 92 s, real brains untouched)
+- [x] Checkpoints save regularly, and a second launch resumes instead of deleting them (`--fresh` is the only way to wipe saves)
 - [ ] I know how to copy results back
 - [ ] Timer/alarm set to stop the machine
 - [ ] Machine **terminated**, storage deleted, dashboard shows $0/hr
 
 ## Useful commands
 ```bash
-# on the rented machine (planned for Dec 2026 — 1 command runs the entire pipeline!)
+# on the Mac, before spending anything (writes only inside dry_run/)
+bash cloud_train.sh --dry-run
+
+# on the rented machine
 git clone https://github.com/ansarbuilds/hedwig.git && cd hedwig
-bash cloud_train.sh           # fast 13.8M smoke test (~10 min)
-bash cloud_train.sh --124m    # scale up to ~115M GPT-2 Small size on 500 MB stories
+bash cloud_train.sh           # 13.8M smoke test
+bash cloud_train.sh --124m    # 91.3M knobs: 12 layers, 768 wide, 500 MB of stories, 6000 pretrain steps
+bash cloud_train.sh --fresh   # delete checkpoints and prepared data, then start over
 
 # from the Mac: copy the trained brains back BEFORE terminating the pod!
 scp -P <port> root@<host>:~/hedwig/brain*.pt ./

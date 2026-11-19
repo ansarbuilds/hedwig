@@ -181,7 +181,7 @@ def train():
     stop_step = int(sys.argv[2]) if len(sys.argv) > 2 else steps
     t0 = time.time()
     for step in range(start_step, stop_step + 1):
-        if step % 250 == 0:
+        if step % ckpt_every == 0:
             model.eval()
             with torch.no_grad(), torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=use_bf16):
                 vl = sum(model(*get_batch(val_data))[1].item() for _ in range(20)) / 20

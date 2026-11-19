@@ -29,10 +29,11 @@ Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and
 - [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live Stage 3 DPO / Stage 2 SFT / 8-bit / 4-bit / Stage 1 brain switching
 - [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 91.7%` preference win-rate in 100 steps; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
 - [x] **Refresh `how-hedwig-learns.html` ($0)**: Updated the interactive visual field guide with real Phase 1–5 & Stage 1–3 measurements
-- [x] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Turnkey script (`bash cloud_train.sh` or `bash cloud_train.sh --124m`) ready for next month's cloud GPU run
+- [x] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Turnkey script, rehearsed with `--dry-run`. `--124m` builds 91,286,272 knobs.
 
 ## Phase 3: First cloud run (~$15–30 — Planned for Next Month / Dec 2026)
 See `docs/CLOUD_GPU_100.md`.
+- [x] Local rehearsal of `cloud_train.sh --dry-run` (2 steps in `dry_run/`, 92 s, real brains untouched). Restarts keep checkpoints. `--124m` is 91,286,272 knobs, and the script stops if that edit does not apply.
 - [ ] Rent 1× GPU, clone this repo, run a short test (~$2)
 - [ ] Run **Karpathy's nanochat** speedrun end to end to see a full pretrain → SFT → chat pipeline at scale. Read every script.
 - [ ] Download the result; chat with it locally

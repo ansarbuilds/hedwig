@@ -20,7 +20,7 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `logs/DEVLOG.md`: automatic daily commit log via `.github/workflows/devlog.yml`
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
 - `how-hedwig-learns.html`: interactive visual explainer updated with all Phase 1–5 & Stage 1–3 measured curves
-- `cloud_train.sh`: 1-command cloud GPU script (`bash cloud_train.sh` or `bash cloud_train.sh --124m`) ready for Dec 2026
+- `cloud_train.sh`: 1-command cloud GPU script. `bash cloud_train.sh --dry-run` rehearses 2 steps in `dry_run/` (passed in 92 s; real brains untouched). On a GPU: `bash cloud_train.sh` (13.8M smoke) or `bash cloud_train.sh --124m` (91,286,272 knobs). Restarts resume; `--fresh` wipes saves.
 - `export_iphone.py`: exports `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt` (`7.9 MB`), and `iphone/HedwigApp.swift` for Xcode
 - `ssd_runner.py`: "LLM in a Flash" layer streaming. Splits `brain_dpo.pt` into `ssd_layers/` and loads one block at a time. Measured on M4: weights in memory `52.9 MB → 18.8 MB`, speed `108 → 33 tok/s`, peak process RAM `403 → 372 MB` (stories identical). `.venv/bin/python ssd_runner.py`
 
@@ -45,4 +45,4 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 3. Low-resource / second-language Hedwig using the same UTF-8 BPE tokenizer.
 
 ### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
-1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` to scale Hedwig to ~115M+ params on `500 MB – 1.9 GB` TinyStories + Gutenberg (plus Karpathy's `nanochat` speedrun).
+1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` (91,286,272 knobs, 500 MB of stories). Local `--dry-run` already passed.
