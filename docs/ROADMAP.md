@@ -34,8 +34,8 @@ See `docs/CLOUD_GPU_100.md`.
 - [ ] Scale up on cloud GPU (~124M–560M nanochat speedrun on TinyStories + Gutenberg + optionally FineWeb-Edu) and compare with the local 13.8M model
 
 ## Phase 5: Ship it ($0)
-- [ ] Quantize to 8-bit / 4-bit; measure quality vs size
-- [ ] Run on the Mac with a simple chat UI
+- [x] Quantize to 8-bit / 4-bit (`quantize.py`); measure quality vs size (`55.5 MB` fp32 `1.7544` → `27.8 MB` bf16 `1.7544` → `14.0 MB` int8 `1.7547` → `7.9 MB` int4 `1.7718`)
+- [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
 - [ ] Convert to Core ML and build a tiny iPhone app (Xcode, free Apple ID)
 - [ ] Upload the weights to **Hugging Face** (private) as a backup; files >100 MB don't belong on GitHub
 

@@ -179,3 +179,19 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
 - **Measured SFT response loss (750 steps at `lr = 2e-4`, `746 s` on M4 `mps`):**
   `0: 2.077 · 150: 1.825 🌟 · 300: 1.769 🌟 · 450: 1.777 · 600: 1.781 · 750: 1.766 🌟 (best)`
 - **Result (`brain_chat.pt`, `27.8 MB` in `bfloat16`):** Follows story instructions (e.g. `"Tell me a story where a little girl named Lily finds a shiny key in the garden"` or `"Write a story: A little bird named Pip learns to fly high above the forest with his mom"`) and stops at the end of the story.
+
+## 20. Phase 5 — 8-bit & 4-bit Quantization (`quantize.py`) + Local Mac Chat UI (`app.py`) ✅
+
+- **How from-scratch quantization works (`quantize.py`):**
+  - **8-bit (`int8`, `brain_chat_int8.pt`):** Scales each weight matrix row by `max(|row|) / 127` and rounds to 1-byte integers (`-127..+127`) plus a `float16` row scale.
+  - **4-bit (`int4`, `brain_chat_int4.pt`):** Splits weights into groups of `32` knobs, scales each group to `-7..+7`, and packs **two 4-bit knobs into one `uint8` byte** (`0.5` bytes per knob!).
+- **Measured quality vs file size on the SFT validation set (30 seeded batches):**
+
+| Precision | File size | Shrink vs 32-bit | SFT test score (lower = smarter) |
+|---|---|---|---|
+| 32-bit (`float32`) | `55.52 MB` | `1.00×` | `1.7544` |
+| 16-bit (`bfloat16`, `brain_chat.pt`) | `27.78 MB` | `2.00×` | `1.7544` (`+0.0000`) |
+| 8-bit (`int8`, `brain_chat_int8.pt`) | **`14.00 MB`** | **`3.96×`** | **`1.7547`** (`+0.0003` — virtually identical!) |
+| 4-bit (`int4`, `brain_chat_int4.pt`) | **`7.87 MB`** | **`7.05×`** | **`1.7718`** (`+0.0174` — still writes full coherent stories at 7.9 MB!) |
+
+- **Local Mac Chat UI (`app.py`):** Zero-dependency web app at `http://127.0.0.1:8000` with live switching between 16-bit (`27.8 MB`), 8-bit (`14.0 MB`), 4-bit (`7.9 MB`), and Stage 1 Base (`27.8 MB`) brains, story-starter chips, and a creativity (temperature) slider.

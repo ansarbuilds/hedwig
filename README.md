@@ -16,8 +16,10 @@ kindness and for helping him. From that day on, Zoey never had to worry again.
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python sft.py talk "Tell me a story where a little girl named Lily finds a shiny key in the garden."
+.venv/bin/python app.py                                              # open offline Mac Chat UI (16-bit / 8-bit / 4-bit)
 .venv/bin/python sft.py chat                                         # interactive terminal chat (`brain_chat.pt`)
+.venv/bin/python sft.py talk "Tell me a story where a little girl named Lily finds a shiny key in the garden."
+.venv/bin/python quantize.py                                         # quantize to 8-bit (14 MB) & 4-bit (7.9 MB)
 .venv/bin/python tinygpt.py talk "Once upon a time, a little owl "   # base autocomplete model (`brain.pt`)
 .venv/bin/python prepare_data.py                                     # download stories & build .bin shards
 .venv/bin/python tinygpt.py train                                    # Stage 1 pretraining
@@ -30,11 +32,15 @@ python3.12 -m venv .venv
 |---|---|
 | `tinygpt.py` | Stage 1: ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), pretraining & autocomplete |
 | `sft.py` | Stage 2: Supervised Fine-Tuning (prompt loss masking) & interactive story chat (`talk` / `chat`) |
+| `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
+| `app.py` | Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
 | `brain.pt` | Stage 1 pretrained storyteller weights (`27.8 MB` in `bfloat16`, val loss `2.080`) |
-| `brain_chat.pt` | Stage 2 SFT instruction-following weights (`27.8 MB` in `bfloat16`, response loss `1.766`) |
+| `brain_chat.pt` | Stage 2 SFT chat weights (`27.8 MB` in `bfloat16`, response loss `1.7544`) |
+| `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.7547`) |
+| `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.7718`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Visual explainer: knobs, training, model sizes |
 | `docs/LEARNINGS.md` | Concepts and measured results |
