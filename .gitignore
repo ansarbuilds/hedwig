@@ -11,6 +11,9 @@ ckpt.pt
 ckpt.pt.tmp
 ckpt_more.pt
 ckpt_more.pt.tmp
+ckpt_full.pt
+ckpt_full.pt.tmp
+logs/full_read.log
 *.bak
 brain.pt.tmp
 ckpt_sft.pt

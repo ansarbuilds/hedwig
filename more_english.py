@@ -23,33 +23,52 @@ import sft
 import dpo
 
 # ---- Settings ----
-more_mb = 200          # how much TinyStories to read (the first run used 50)
-more_steps = 2000      # extra practice steps on the taller pile
+# "more"  = the 200 MB run already finished (val 2.080 -> 2.010)
+# "full"  = the rest of TinyStories, one full read, same dictionary, same quiz
+mode = "full" if (len(__import__("sys").argv) > 1 and __import__("sys").argv[1] == "full") else "more"
+more_mb = 1924 if mode == "full" else 200
+more_steps = 2000      # replaced after the full pile is counted: one pass over every piece
 lr = 3e-4              # gentler than the first 1e-3, because the brain already knows stories
 eval_every = 250
-train_bin = "data/train_more.bin"
-ckpt_path = "ckpt_more.pt"
-text_path = "data/tinystories_200.txt"
-old_best = 2.080       # the published Stage 1 score on data/val.bin
+train_bin = "data/train_full.bin" if mode == "full" else "data/train_more.bin"
+ckpt_path = "ckpt_full.pt" if mode == "full" else "ckpt_more.pt"
+text_path = "data/tinystories_full.txt" if mode == "full" else "data/tinystories_200.txt"
+old_best = 2.010 if mode == "full" else 2.080
 
 def download_more():
-    """Fetch a 200 MB slice. The 50 MB file used before is left alone."""
-    if os.path.exists(text_path) and os.path.getsize(text_path) > 100_000_000:
+    """Fetch the story file onto disk. A stopped download continues from the last byte."""
+    want = more_mb * 1024 * 1024
+    if os.path.exists(text_path) and os.path.getsize(text_path) > want * 0.9:
         print(f"  ✓ {text_path} already on disk ({os.path.getsize(text_path)/1e6:.0f} MB)", flush=True)
-        return open(text_path, encoding="utf-8", errors="ignore").read()
-    max_bytes = more_mb * 1024 * 1024
-    print(f"  ↓ downloading {more_mb} MB of TinyStories...", flush=True)
-    req = urllib.request.Request(
-        prepare_data.TINYSTORIES_TRAIN_URL,
-        headers={"Range": f"bytes=0-{max_bytes - 1}", "User-Agent": "Hedwig/1.0"},
-    )
-    raw = urllib.request.urlopen(req, timeout=180).read().decode("utf-8", errors="ignore")
-    cut = raw.rfind("<|endoftext|>")
-    if cut != -1:
-        raw = raw[:cut]
-    open(text_path, "w", encoding="utf-8").write(raw)
-    print(f"  ✓ saved {text_path} ({len(raw)/1e6:.0f} MB)", flush=True)
-    return raw
+        return
+    partial = text_path + ".partial"
+    done = os.path.getsize(partial) if os.path.exists(partial) else 0
+    print(f"  ↓ downloading TinyStories ({done/1e6:.0f} MB already, up to {more_mb} MB)...", flush=True)
+    headers = {"User-Agent": "Hedwig/1.0"}
+    if done:
+        headers["Range"] = f"bytes={done}-{want - 1}"
+    else:
+        headers["Range"] = f"bytes=0-{want - 1}"
+    req = urllib.request.Request(prepare_data.TINYSTORIES_TRAIN_URL, headers=headers)
+    with urllib.request.urlopen(req, timeout=120) as src, open(partial, "ab" if done else "wb") as out:
+        # A server that ignores "start where I left off" sends the whole file again.
+        if done and getattr(src, "status", 200) != 206:
+            out.seek(0)
+            out.truncate()
+            done = 0
+        got = done
+        next_report = got + 50_000_000
+        while True:
+            chunk = src.read(1 << 20)
+            if not chunk:
+                break
+            out.write(chunk)
+            got += len(chunk)
+            if got >= next_report:
+                print(f"    {got/1e6:.0f} MB", flush=True)
+                next_report += 50_000_000
+    os.replace(partial, text_path)
+    print(f"  ✓ saved {text_path} ({os.path.getsize(text_path)/1e6:.0f} MB)", flush=True)
 
 def write_tokens(text, merges, path):
     """Turn a long string into a uint16 file, one chunk at a time so RAM stays calm."""
@@ -73,17 +92,47 @@ def write_tokens(text, merges, path):
     os.replace(tmp, path)
     return total
 
+def tokenize_file(path, merges, out, cache):
+    """Read a text file in chunks and append piece numbers. Does not load the whole book."""
+    leftover = ""
+    total = 0
+    with open(path, encoding="utf-8", errors="ignore") as src:
+        while True:
+            chunk = src.read(1_000_000)
+            text = leftover + chunk
+            text = text.replace("<|endoftext|>", "\n\n")
+            if chunk:
+                leftover = text[-32:]
+                text = text[:-32]
+            else:
+                leftover = ""
+            if text:
+                ids = np.array(tokenizer.encode(text, merges, cache), dtype=np.uint16)
+                ids.tofile(out)
+                total += len(ids)
+                if total // 5_000_000 != (total - len(ids)) // 5_000_000:
+                    print(f"    {total/1e6:.1f}M pieces", flush=True)
+            if not chunk:
+                break
+    return total
+
 def build_train_bin():
     if os.path.exists(train_bin) and os.path.getsize(train_bin) > 20_000_000:
         n = os.path.getsize(train_bin) // 2
         print(f"  ✓ {train_bin} already built ({n:,} pieces)", flush=True)
         return n
-    print("Building a taller English story pile with the existing dictionary...", flush=True)
-    stories = prepare_data.clean_tinystories(download_more())
-    print("  adding the same 10 Gutenberg novels...", flush=True)
-    books, _ = prepare_data.load_gutenberg_books()
-    text = stories + "\n\n" + books
-    n = write_tokens(text, tinygpt.merges, train_bin)
+    print("Building the English story pile with the existing dictionary...", flush=True)
+    download_more()
+    cache = {}
+    tmp = train_bin + ".tmp"
+    with open(tmp, "wb") as out:
+        n = tokenize_file(text_path, tinygpt.merges, out, cache)
+        print("  adding the same 10 Gutenberg novels...", flush=True)
+        books, _ = prepare_data.load_gutenberg_books()
+        ids = np.array(tokenizer.encode("\n\n" + books, tinygpt.merges, cache), dtype=np.uint16)
+        ids.tofile(out)
+        n += len(ids)
+    os.replace(tmp, train_bin)
     print(f"  ✓ {train_bin}: {n:,} pieces", flush=True)
     return n
 
@@ -97,11 +146,30 @@ def save_brain(model, path):
     torch.save(sd, path + ".tmp")
     os.replace(path + ".tmp", path)
 
+def one_batch(data):
+    """32 snippets. data stays on disk as 2-byte numbers; only this handful is copied."""
+    n = tinygpt.block_size
+    starts = np.random.randint(0, len(data) - n - 1, size=tinygpt.batch_size)
+    x = np.empty((tinygpt.batch_size, n), np.int64)
+    y = np.empty((tinygpt.batch_size, n), np.int64)
+    for row, start in enumerate(starts):
+        x[row] = data[start:start + n]
+        y[row] = data[start + 1:start + n + 1]
+    dev = tinygpt.device
+    return torch.from_numpy(x).to(dev), torch.from_numpy(y).to(dev)
+
 def train_more():
-    build_train_bin()
-    train_data = torch.from_numpy(np.fromfile(train_bin, dtype=np.uint16).astype(np.int64))
+    global more_steps
+    n_pieces = build_train_bin()
+    one_pass = max(1, n_pieces // (tinygpt.batch_size * tinygpt.block_size))
+    if mode == "full":
+        more_steps = one_pass
+    train_data = np.memmap(train_bin, dtype=np.uint16, mode="r")
     val_data = torch.from_numpy(np.fromfile(tinygpt.val_bin, dtype=np.uint16).astype(np.int64))
+    hours = more_steps * 1.2 / 3600
     print(f"Train pieces {len(train_data):,} | same test pages {len(val_data):,}", flush=True)
+    print(f"One full read is {more_steps:,} steps, about {hours:.1f} hours if the Air stays cool.", flush=True)
+    print("A bookmark is saved every 250 steps. Stop anytime; run the same command to continue.", flush=True)
     model = tinygpt.TinyGPT().to(tinygpt.device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, more_steps)
@@ -136,7 +204,7 @@ def train_more():
         if step == more_steps:
             break
         with torch.autocast(device_type=tinygpt.device, dtype=torch.bfloat16, enabled=tinygpt.use_bf16):
-            _, loss = model(*tinygpt.get_batch(train_data))
+            _, loss = model(*one_batch(train_data))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
     print(f"Extra reading done. Best val score {best:.3f} (was {old_best:.3f})", flush=True)
     return best
