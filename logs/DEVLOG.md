@@ -40,3 +40,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **11:21** Give the bigger cloud brain a full read, and pack the taste brain small. (`f40c010`)
   > 20,000 steps matches the Mac brain's two word-pieces per knob, and the Stage 3 brain now has 8-bit and 4-bit copies with almost the same story score.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **11:29** Measure the same 13.8M brain in Apple MLX and in PyTorch. (`5265411`)
+  > A practice step drops from 596 ms to 99 ms in 16-bit MLX, story writing is a little faster, and the most-likely story matches piece for piece.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
