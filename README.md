@@ -1,14 +1,19 @@
 # 🦉 Hedwig
 
-A tiny GPT-style language model built from scratch to learn how LLMs work.
-- **v1:** 4.8M-parameter character-level Transformer trained on Tiny Shakespeare in ~16 minutes on a MacBook Air M4 (final loss `1.481`).
-- **v2 (Phase 2 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained 3,000 steps on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, val loss **`2.080`**, `brain.pt` = `27.8 MB` in `bfloat16`):
+A tiny GPT-style language model built from scratch in pure PyTorch to learn how every piece of an LLM works.
+
+## Progress so far (all trained on a MacBook Air M4 for $0)
+- **v1 (Phase 0):** 4.8M-parameter character-level Transformer on Tiny Shakespeare (~16 min, loss `1.481`).
+- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained 3,000 steps on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, val loss **`2.080`**, `brain.pt` = `27.8 MB`).
+- **v3 (Phase 2.5 — Stage 2 SFT Chat + 8-bit/4-bit Quantization + Mac UI):** Fine-tuned on `13,852` instruction → story pairs (`sft.py`, response loss **`1.7544`**, `brain_chat.pt` = `27.8 MB`), quantized from scratch (`quantize.py`) to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, and served in an offline Mac web UI (`app.py`):
 
 ```
-Once upon a time, a little owl Zoey lived in a big tree. The little owl
-was very brave... Then, his friends saw him struggling. They asked him
-what was wrong... Zoey was so happy. He thanked his friends for the
-kindness and for helping him. From that day on, Zoey never had to worry again.
+🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
+🦉 Hedwig (4-bit, 7.9 MB):
+Once upon a time, there was a little girl named Lily. She loved to play outside
+and explore. One day, she found a shiny metal key in her yard... When they got
+home, Lily put the key in her pocket. Timmy was so happy and hugged her tight.
+He said, "Thank you, Lily!" They went back home... dreaming of their next adventure.
 ```
 
 ## Run it
@@ -50,4 +55,5 @@ python3.12 -m venv .venv
 | `AGENTS.md` | Context for AI coding assistants |
 
 ## Where it's going
-A focused storytelling model that runs offline on a Mac and iPhone. See [docs/ROADMAP.md](docs/ROADMAP.md).
+- **Next on Mac ($0):** Stage 3 DPO preference tuning (`dpo.py`), updating `how-hedwig-learns.html`, a 1-command cloud training script, and Core ML iPhone export.
+- **Next Month (Dec 2026, ~$15–100 cloud GPU):** Scale up to ~124M–560M parameters on the full `1.9 GB` TinyStories + Gutenberg dataset and run Karpathy's `nanochat` speedrun. See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).

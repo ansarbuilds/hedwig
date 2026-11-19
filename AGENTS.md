@@ -31,5 +31,11 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Don't commit files >100 MB (GitHub limit). Large weights go to Hugging Face. Datasets go in `data/` and are gitignored except the small Shakespeare file.
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
-## Next task (see ROADMAP Phase 3)
-1. Phase 3 ($15–30 cloud GPU run, see `docs/CLOUD_GPU_100.md`): rent 1× GPU for a smoke test, or run Karpathy's `nanochat` speedrun end to end (pretrain → SFT → chat).
+## Next tasks (see `docs/ROADMAP.md`)
+### Now on MacBook Air ($0, before next month's cloud GPU run):
+1. **Stage 3 — DPO (`dpo.py`)**: Direct Preference Optimization on chosen 👍 vs rejected 👎 story pairs to stay on-topic and reduce repetition (completes all 3 ChatGPT stages locally).
+2. **Refresh `how-hedwig-learns.html`**: Update the visual explainer with measured Phase 1–5 results.
+3. **Cloud-ready script (`cloud_train.sh`) & iPhone export (`export_iphone.py`)**: Prepare 1-command cloud scale-up script and Core ML iPhone export.
+
+### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
+4. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test), scale Hedwig to ~124M+ params on full `1.9 GB` TinyStories + Gutenberg, and run Karpathy's `nanochat` speedrun end to end.
