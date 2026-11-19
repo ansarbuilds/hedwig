@@ -53,7 +53,7 @@ See `docs/CLOUD_GPU_100.md`.
 - [x] **Mixture-of-Experts Hedwig (8 experts, top-2)** (`moe.py` → `26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966` in 300 steps)
 - [x] **Distillation with teacher soft-labels** (`distill.py` → `3.4M` "🐣 Baby Hedwig" Student distilled from `13.8M` Teacher via `T=2.0` KL divergence, loss `7.602 → 2.521` in 600 steps, `brain_baby.pt` = `6.8 MB`)
 - [x] **Interactive "🔬 Brain X-Ray" in Mac Chat UI** (`app.py` — click any generated word to inspect Top-5 candidate probabilities and Top-2 active MoE experts)
-- [ ] Layer-by-layer loading from SSD (AirLLM / "LLM in a Flash" style)
+- [x] Layer-by-layer loading from SSD (`ssd_runner.py`: `52.9 MB → 18.8 MB` of weights in memory, `108 → 33 tok/s`, stories identical; process RAM only `403 → 372 MB` because the `28 MB` brain is smaller than PyTorch itself)
 - [ ] A low-resource-language Hedwig
 
 ## Reading list

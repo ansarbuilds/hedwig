@@ -229,3 +229,20 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - Trained with **50% Teacher soft-label KL divergence (`T = 2.0`) + 50% ground-truth cross-entropy** over 600 steps (`7.602 → 3.128 → 2.722 → 2.607 → 2.521` in `350 s`). Writes complete multi-paragraph stories from a `6.8 MB` 16-bit file (`~1.8 MB` at 4-bit!).
 - **Live "🔬 Brain X-Ray" in `app.py` (`http://127.0.0.1:8000`):**
   - Clicking any word in Hedwig's story displays a `%` probability bar chart of the **Top 5 candidate word-pieces** Hedwig was choosing between at that step, plus the **Top-2 active MoE Experts** when using the MoE brain.
+
+## 24. Layer-by-layer SSD loading ("LLM in a Flash") (`ssd_runner.py`) ✅
+
+Picture six notebooks stacked on your desk. Normally Hedwig keeps all six open (the whole brain in RAM) and flips through them for every new word. `ssd_runner.py` leaves five notebooks in the drawer (the SSD). For the next word it opens notebook 1, thinks, puts it back, opens notebook 2, and so on. One notebook slot is reused. The bookmark of words already written (the KV cache) stays on the desk, because each new word still needs it.
+
+`brain_dpo.pt` (`27.79 MB` on disk) was split into `ssd_layers/resident.pt` (`6.30 MB`: word table + final predictor) and six `block_0.pt` … `block_5.pt` files (`3.58 MB` each). Both runs wrote **80** word-pieces from the same prompt and the same random seed, in a fresh process, on M4 `mps`. The stories matched word for word.
+
+| | all layers in RAM | one layer loaded from SSD |
+|---|---:|---:|
+| weights held | `52.94 MB` (fp32 copy of the bf16 file) | `18.84 MB` (`2.8×` less) |
+| MPS tensor memory | `52.9 MB` | `18.8 MB` |
+| peak process RAM (Activity Monitor style) | `402.5 MB` | `371.8 MB` (only `30.7 MB` less) |
+| time for 80 word-pieces | `0.739 s` | `2.436 s` |
+| speed | `108.2 tok/s` | `32.8 tok/s` (`3.3×` slower) |
+| bytes read from SSD | `0` | `1,719 MB` (`21.5 MB` per word: all 6 layer files) |
+
+What this teaches: on a `28 MB` brain the drawer trick barely moves the process RAM number, because PyTorch itself is already ~`370 MB`. The speed cost is real — every new word re-reads six small files (`80 × 6 × 3.58 MB`). The same idea pays off when the brain is bigger than RAM (a multi-gigabyte model on a phone, or the Dec 2026 cloud brain if it outgrows a small machine). Run it again with `.venv/bin/python ssd_runner.py`.

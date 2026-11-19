@@ -13,6 +13,7 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
   - **Mixture-of-Experts (`moe.py`):** 8 specialist experts, top-2 routing (`26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
   - **Knowledge Distillation (`distill.py`):** `13.8M` Teacher → `3.4M` **🐣 Baby Hedwig** Student (`brain_baby.pt`, `6.8 MB`, loss `7.602 → 2.521`).
   - **Mobile & Cloud Packaging (`export_iphone.py`, `cloud_train.sh`, `how-hedwig-learns.html`):** TorchScript + 4-bit + SwiftUI iPhone bundle, 1-command Dec 2026 cloud GPU script, and updated interactive field guide.
+- **v5 (SSD streaming, $0):** `ssd_runner.py` loads one thinking layer at a time off the SSD ("LLM in a Flash"). Weights in memory drop `52.9 MB → 18.8 MB`, speed drops `108 → 33 tok/s`, and the story is identical. Peak process RAM only moves `403 → 372 MB`, because a `28 MB` brain is smaller than PyTorch itself.
 
 ```
 🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
@@ -39,6 +40,7 @@ python3.12 -m venv .venv
 .venv/bin/python sft.py train                                        # Stage 2 SFT ("chat manners")
 .venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
 .venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
+.venv/bin/python ssd_runner.py                                       # one layer at a time from SSD vs all-in-RAM
 bash cloud_train.sh                                                  # 1-command end-to-end pipeline (or `bash cloud_train.sh --124m` on cloud GPU)
 ```
 
@@ -54,6 +56,7 @@ bash cloud_train.sh                                                  # 1-command
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
 | `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 7 brains, word streaming, & 🔬 Live Brain X-Ray |
 | `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
+| `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
 | `cloud_train.sh` | 1-command Cloud GPU training script (`--124m` scales to GPT-2 Small size for Dec 2026) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
@@ -66,7 +69,7 @@ bash cloud_train.sh                                                  # 1-command
 | `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5 & Stage 1–3 measured curves |
-| `docs/LEARNINGS.md` | Concepts and 23 sections of measured results |
+| `docs/LEARNINGS.md` | Concepts and 24 sections of measured results |
 | `docs/ROADMAP.md` | Complete project plan & stretch checklist |
 | `docs/CLOUD_GPU_100.md` | Dec 2026 $100 cloud GPU guide & safety checklist |
 | `logs/DEVLOG.md` | Automatic daily dev log (updated on push) |
@@ -75,7 +78,7 @@ bash cloud_train.sh                                                  # 1-command
 ## Next Steps & Plan
 - **All core $0 MacBook Air milestones are complete ✅!**
 - **Optional $0 Mac experiments (anytime before Dec 2026):**
-  1. **Layer-by-layer SSD streaming (`ssd_runner.py`):** Apple *"LLM in a Flash"* / AirLLM style — load 1 layer at a time off SSD and measure peak RAM vs speed.
+  1. ~~**Layer-by-layer SSD streaming (`ssd_runner.py`):**~~ Done. `52.9 MB → 18.8 MB` of weights in memory, `108 → 33 tok/s`, same story. Process RAM only `403 → 372 MB`.
   2. **Apple MLX vs PyTorch MPS benchmark:** Compare Apple's native Silicon framework against PyTorch `mps` on the 13.8M Transformer.
   3. **Second-language / low-resource Hedwig:** Train Hedwig on a non-English language using the same UTF-8 byte-level BPE tokenizer.
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
