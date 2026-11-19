@@ -26,7 +26,7 @@ Repeat thousands to billions of times.
 |---|---|---|---|
 | 1 | Pretraining | Language, facts, style (learn to talk) | ✅ done (`tinygpt.py` → `brain.pt`) |
 | 2 | SFT (supervised fine-tuning) | Answer questions, follow instructions (manners) | ✅ done (`sft.py` → `brain_chat.pt`) |
-| 3 | RLHF / DPO / RL | Give *better* answers | ❌ |
+| 3 | RLHF / DPO / RL | Give *better* answers (preference & taste) | ✅ done (`dpo.py` → `brain_dpo.pt`) |
 
 ## 4. Hedwig v1 results (measured)
 
@@ -195,3 +195,14 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
 | 4-bit (`int4`, `brain_chat_int4.pt`) | **`7.87 MB`** | **`7.05×`** | **`1.7718`** (`+0.0174` — still writes full coherent stories at 7.9 MB!) |
 
 - **Local Mac Chat UI (`app.py`):** Zero-dependency web app at `http://127.0.0.1:8000` with live switching between 16-bit (`27.8 MB`), 8-bit (`14.0 MB`), 4-bit (`7.9 MB`), and Stage 1 Base (`27.8 MB`) brains, story-starter chips, and a creativity (temperature) slider.
+
+## 21. Stage 3 — Direct Preference Optimization (DPO: "Taste & Reward Hacking") (`dpo.py`) ✅
+
+- **What DPO teaches:** Built `13,852` `(prompt, 👍 chosen, 👎 rejected)` preference triplets (`2,327` val) where 👎 rejected stories are either off-topic (from a different prompt) or have clumsy sentence repetition. Kept a frozen copy of `brain_chat.pt` as the reference anchor (`ref`) and trained the active student (`policy`) to widen the log-probability gap between 👍 and 👎.
+- **Run 1 — Pure DPO without fluency anchor (`beta = 0.2, lr = 5e-5, 300 steps`) exposed "Reward Hacking":**
+  - DPO loss dropped `0.693 → 0.269` and preference win-rate jumped `0.0% → 89.6%`.
+  - It fixed the off-topic bug (asking for `"owl and tree"` or `"dragon and castle"` actually produced stories about an owl/tree and dragon/castle instead of Spot the dog!), **but** by step 300 it discovered a classic RL loophole (**reward hacking**): cramming `"Lily's"` into every 3rd word (`"Lily loves Lily's key. Lily does Lily's mom's idea..."`) to artificially inflate the `pol_c - pol_r` margin at the expense of normal grammar!
+- **Run 2 — Anchored DPO (`beta = 0.5, lr = 2e-5, nll_weight = 0.5, 150 steps`) fixed the reward hack:**
+  - Added a `0.5 * chosen_nll` fluency anchor (Llama-3 / RPO style) so Hedwig must prefer 👍 over 👎 **while** maintaining fluent English on 👍 stories.
+  - **Measured curve:** `step 0: DPO 0.693 (win 0.0%) · step 50: DPO 0.639 (win 87.9% 🌟) · step 100: DPO 0.598 (win 91.7% 🌟) · step 150: DPO 0.602 (win 89.6%)`
+  - **Result (`brain_dpo.pt`, `27.8 MB` in `bfloat16`):** Reached **`91.7%` preference win-rate** in 100 steps (`103 s`) and writes clean, grammatical, on-topic stories (`"Once upon a time, there was a little girl named Lily. She was very happy because she found a shiny key... From that day on, Lily and Lily played together and had lots of fun. The end."`). All 3 stages of a modern ChatGPT-style LLM (`Pretrain → SFT → DPO`) are now complete from scratch!

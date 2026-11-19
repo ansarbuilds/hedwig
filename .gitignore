@@ -13,3 +13,6 @@ brain.pt.tmp
 ckpt_sft.pt
 ckpt_sft.pt.tmp
 brain_chat.pt.tmp
+ckpt_dpo.pt
+ckpt_dpo.pt.tmp
+brain_dpo.pt.tmp

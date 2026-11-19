@@ -26,8 +26,8 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and proved the entire post-training & shipping stack locally on the 13.8M model first:
 - [x] **Stage 2 — SFT ("Chat Manners", `sft.py`)**: `13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking (`brain_chat.pt`, `27.8 MB` `bf16`, response loss `2.077 → 1.7544`, interactive `sft.py chat`)
 - [x] **8-bit & 4-bit Quantization (`quantize.py`)**: `55.5 MB` fp32 (`1.7544`) → `27.8 MB` bf16 (`1.7544`) → `14.0 MB` int8 (`1.7547`, `brain_chat_int8.pt`) → `7.9 MB` int4 (`1.7718`, `brain_chat_int4.pt`)
-- [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live 16-bit / 8-bit / 4-bit brain switching
-- [ ] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Train on chosen 👍 vs rejected 👎 story pairs to stay on-topic and reduce repetition (completes all 3 ChatGPT stages locally!)
+- [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live Stage 3 DPO / Stage 2 SFT / 8-bit / 4-bit / Stage 1 brain switching
+- [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 91.7%` preference win-rate in 100 steps; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
 - [ ] **Refresh `how-hedwig-learns.html` ($0)**: Update the visual field guide with real Phase 1–5 measurements
 - [ ] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Ready-to-run script for next month's cloud GPU run
 

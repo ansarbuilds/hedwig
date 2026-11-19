@@ -5,7 +5,10 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
 ## Progress so far (all trained on a MacBook Air M4 for $0)
 - **v1 (Phase 0):** 4.8M-parameter character-level Transformer on Tiny Shakespeare (~16 min, loss `1.481`).
 - **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained 3,000 steps on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, val loss **`2.080`**, `brain.pt` = `27.8 MB`).
-- **v3 (Phase 2.5 — Stage 2 SFT Chat + 8-bit/4-bit Quantization + Mac UI):** Fine-tuned on `13,852` instruction → story pairs (`sft.py`, response loss **`1.7544`**, `brain_chat.pt` = `27.8 MB`), quantized from scratch (`quantize.py`) to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, and served in an offline Mac web UI (`app.py`):
+- **v3 (Phase 2.5 — Stage 2 SFT + Stage 3 DPO + 8-bit/4-bit Quantization + Mac UI):**
+  - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.7544`**, `brain_chat.pt` = `27.8 MB`).
+  - **Stage 3 DPO (`dpo.py`):** Direct Preference Optimization on `13,852` chosen 👍 vs rejected 👎 pairs with a fluency anchor (**`91.7%` preference win-rate**, `brain_dpo.pt` = `27.8 MB`).
+  - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, served in an offline Mac web UI (`app.py`):
 
 ```
 🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
@@ -21,7 +24,8 @@ He said, "Thank you, Lily!" They went back home... dreaming of their next advent
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python app.py                                              # open offline Mac Chat UI (16-bit / 8-bit / 4-bit)
+.venv/bin/python app.py                                              # open offline Mac Chat UI (DPO / SFT / 8-bit / 4-bit)
+.venv/bin/python dpo.py talk "Write a short story about dragon and castle."
 .venv/bin/python sft.py chat                                         # interactive terminal chat (`brain_chat.pt`)
 .venv/bin/python sft.py talk "Tell me a story where a little girl named Lily finds a shiny key in the garden."
 .venv/bin/python quantize.py                                         # quantize to 8-bit (14 MB) & 4-bit (7.9 MB)
@@ -29,6 +33,7 @@ python3.12 -m venv .venv
 .venv/bin/python prepare_data.py                                     # download stories & build .bin shards
 .venv/bin/python tinygpt.py train                                    # Stage 1 pretraining
 .venv/bin/python sft.py train                                        # Stage 2 SFT ("chat manners")
+.venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
 ```
 
 ## Files
@@ -37,6 +42,7 @@ python3.12 -m venv .venv
 |---|---|
 | `tinygpt.py` | Stage 1: ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), pretraining & autocomplete |
 | `sft.py` | Stage 2: Supervised Fine-Tuning (prompt loss masking) & interactive story chat (`talk` / `chat`) |
+| `dpo.py` | Stage 3: Direct Preference Optimization (👍 chosen vs 👎 rejected + fluency anchor) |
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
 | `app.py` | Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
@@ -44,6 +50,7 @@ python3.12 -m venv .venv
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
 | `brain.pt` | Stage 1 pretrained storyteller weights (`27.8 MB` in `bfloat16`, val loss `2.080`) |
 | `brain_chat.pt` | Stage 2 SFT chat weights (`27.8 MB` in `bfloat16`, response loss `1.7544`) |
+| `brain_dpo.pt` | Stage 3 DPO preference-tuned weights (`27.8 MB` in `bfloat16`, `91.7%` preference win-rate) |
 | `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.7547`) |
 | `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.7718`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |

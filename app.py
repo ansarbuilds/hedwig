@@ -16,10 +16,11 @@ PORT = 8000
 MODELS = {}
 
 BRAIN_SPECS = {
-    "chat_16": ("16-bit Chat (27.8 MB)", "brain_chat.pt",      "chat", 16),
-    "chat_8":  ("8-bit Chat (13.9 MB)",  "brain_chat_int8.pt", "chat", 8),
-    "chat_4":  ("4-bit Chat (7.8 MB)",   "brain_chat_int4.pt", "chat", 4),
-    "base_16": ("Stage 1 Base (27.8 MB)","brain.pt",           "base", 16),
+    "dpo_16":  ("Stage 3 DPO Chat (27.8 MB)", "brain_dpo.pt",       "chat", 16),
+    "chat_16": ("Stage 2 SFT Chat (27.8 MB)", "brain_chat.pt",      "chat", 16),
+    "chat_8":  ("8-bit Quantized (14.0 MB)",  "brain_chat_int8.pt", "chat", 8),
+    "chat_4":  ("4-bit Quantized (7.9 MB)",   "brain_chat_int4.pt", "chat", 4),
+    "base_16": ("Stage 1 Base (27.8 MB)",     "brain.pt",           "base", 16),
 }
 
 def get_model(key):
@@ -81,9 +82,10 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
   <div class="controls">
     <label>Brain:
       <select id="model">
-        <option value="chat_16">16-bit Chat (27.8 MB · score 1.766)</option>
-        <option value="chat_8">8-bit Quantized Chat (13.9 MB · 4× smaller)</option>
-        <option value="chat_4">4-bit Quantized Chat (7.8 MB · 7× smaller)</option>
+        <option value="dpo_16">Stage 3 DPO Chat (27.8 MB · 91.7% preference win-rate)</option>
+        <option value="chat_16">Stage 2 SFT Chat (27.8 MB · score 1.754)</option>
+        <option value="chat_8">8-bit Quantized Chat (14.0 MB · 4× smaller)</option>
+        <option value="chat_4">4-bit Quantized Chat (7.9 MB · 7× smaller)</option>
         <option value="base_16">Stage 1 Autocomplete Base (27.8 MB)</option>
       </select>
     </label>
