@@ -6,9 +6,9 @@ Hedwig is a learning project: build a ChatGPT-style language model from scratch,
 Long-term goal: a focused **storytelling** model that runs offline on a 16 GB MacBook Air M4 and an iPhone.
 
 ## Current state
-- `tinygpt.py`: BPE-based GPT (512 vocab), 5.0M params, ~137 lines, with checkpoint save/resume every 250 steps (`ckpt.pt`) and token cache (`data/tokens_512.pt`). `.venv/bin/python tinygpt.py train` / `.venv/bin/python tinygpt.py talk "ROMEO:"`
+- `tinygpt.py`: BPE-based GPT (512 vocab) with RoPE + explicit `CausalSelfAttention`, 5.0M params, ~170 lines, with best-val `brain.pt` saving, checkpoint save/resume every 250 steps (`ckpt.pt`), and token cache (`data/tokens_512.pt`). `.venv/bin/python tinygpt.py train` / `.venv/bin/python tinygpt.py talk "ROMEO:"`
 - `tokenizer.py` & `tokenizer.json`: from-scratch BPE tokenizer (512 vocab: 256 bytes + 256 merges), wired into `tinygpt.py`
-- `brain.pt`: BPE-trained weights (best val `3.007` at step 750, final `3.429` at step 3000 on Tiny Shakespeare)
+- `brain.pt`: BPE + RoPE weights (best val `3.013` at step 500 on Tiny Shakespeare)
 - `data/input.txt`: Tiny Shakespeare
 - `logs/DEVLOG.md`: automatic daily commit log via `.github/workflows/devlog.yml`
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
@@ -28,4 +28,4 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
 ## Next task (see ROADMAP Phase 1)
-1. Save best-val `brain.pt` (to avoid saving overfit step-3000 weights) and modernize the architecture one change at a time (RoPE → RMSNorm → SwiGLU → bf16 autocast → `F.scaled_dot_product_attention`), then move to Phase 2 (TinyStories + Gutenberg) so the dataset is large enough not to overfit.
+1. Continue modernizing `tinygpt.py` one change at a time (RMSNorm → SwiGLU → bf16 autocast → `F.scaled_dot_product_attention`), then move to Phase 2 (TinyStories + Gutenberg) so the dataset is large enough not to overfit.

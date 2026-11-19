@@ -47,32 +47,60 @@ def get_batch(d):
     return x.to(device), y.to(device)
 
 # ---- The brain ----
+def apply_rope(x, cos, sin):
+    """Rotate pairs of features by position angle so attention sees relative distance."""
+    x1, x2 = x.chunk(2, dim=-1)
+    return torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], dim=-1)
+
+class CausalSelfAttention(nn.Module):
+    """Multi-head causal self-attention with RoPE (no peeking ahead)."""
+    def __init__(self):
+        super().__init__()
+        self.head_dim = n_embd // n_head
+        self.qkv = nn.Linear(n_embd, 3 * n_embd)
+        self.proj = nn.Linear(n_embd, n_embd)
+        self.drop = nn.Dropout(dropout)
+        inv_freq = 1.0 / (10000.0 ** (torch.arange(0, self.head_dim, 2).float() / self.head_dim))
+        freqs = torch.outer(torch.arange(block_size).float(), inv_freq)
+        self.register_buffer("cos", freqs.cos()[None, None, :, :])
+        self.register_buffer("sin", freqs.sin()[None, None, :, :])
+        self.register_buffer("mask", torch.triu(torch.ones(block_size, block_size, dtype=torch.bool), 1)[None, None])
+
+    def forward(self, x):
+        B, T, C = x.shape
+        q, k, v = self.qkv(x).split(C, dim=-1)
+        q = q.view(B, T, n_head, self.head_dim).transpose(1, 2)
+        k = k.view(B, T, n_head, self.head_dim).transpose(1, 2)
+        v = v.view(B, T, n_head, self.head_dim).transpose(1, 2)
+        q = apply_rope(q, self.cos[:, :, :T], self.sin[:, :, :T])
+        k = apply_rope(k, self.cos[:, :, :T], self.sin[:, :, :T])
+        att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+        att = att.masked_fill(self.mask[:, :, :T, :T], float("-inf"))
+        att = self.drop(F.softmax(att, dim=-1))
+        out = (att @ v).transpose(1, 2).contiguous().view(B, T, C)
+        return self.drop(self.proj(out))
+
 class Block(nn.Module):
     def __init__(self):
         super().__init__()
         self.ln1 = nn.LayerNorm(n_embd)
-        self.attn = nn.MultiheadAttention(n_embd, n_head, dropout=dropout, batch_first=True)
+        self.attn = CausalSelfAttention()
         self.ln2 = nn.LayerNorm(n_embd)
         self.mlp = nn.Sequential(nn.Linear(n_embd, 4 * n_embd), nn.GELU(),
                                  nn.Linear(4 * n_embd, n_embd), nn.Dropout(dropout))
     def forward(self, x):
-        T = x.size(1)
-        mask = torch.triu(torch.ones(T, T, device=x.device, dtype=torch.bool), 1)  # no peeking ahead!
-        h = self.ln1(x)
-        x = x + self.attn(h, h, h, attn_mask=mask, need_weights=False)[0]
+        x = x + self.attn(self.ln1(x))
         return x + self.mlp(self.ln2(x))
 
 class TinyGPT(nn.Module):
     def __init__(self):
         super().__init__()
         self.tok = nn.Embedding(vocab_size, n_embd)
-        self.pos = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(*[Block() for _ in range(n_layer)])
         self.ln = nn.LayerNorm(n_embd)
         self.head = nn.Linear(n_embd, vocab_size)
     def forward(self, idx, targets=None):
-        T = idx.size(1)
-        x = self.tok(idx) + self.pos(torch.arange(T, device=idx.device))
+        x = self.tok(idx)
         logits = self.head(self.ln(self.blocks(x)))
         loss = None if targets is None else F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
         return logits, loss
@@ -92,14 +120,15 @@ def train():
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, steps)
 
     # ---- Resume if a save point exists ----
-    start_step = 0
+    start_step, best_val = 0, float("inf")
     if os.path.exists(ckpt_path):
         ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         opt.load_state_dict(ckpt["opt"])
         sched.load_state_dict(ckpt["sched"])
         start_step = ckpt["step"]
-        print(f"Resuming from step {start_step}")
+        best_val = ckpt.get("best_val", float("inf"))
+        print(f"Resuming from step {start_step} (best score so far: {best_val:.3f})")
 
     t0 = time.time()
     for step in range(start_step, steps + 1):
@@ -108,12 +137,17 @@ def train():
             with torch.no_grad():
                 vl = sum(model(*get_batch(val_data))[1].item() for _ in range(20)) / 20
             print(f"step {step:5d} | test score (lower=smarter) {vl:.3f} | {time.time()-t0:.0f}s", flush=True)
+            if step > 0 and vl < best_val:
+                best_val = vl
+                torch.save(model.state_dict(), "brain.pt.tmp")
+                os.replace("brain.pt.tmp", "brain.pt")
+                print(f"  🌟 saved new best brain.pt (score {best_val:.3f})")
             model.train()
 
         # ---- Save point ----
         if step > start_step and step % ckpt_every == 0:
             ckpt = {"model": model.state_dict(), "opt": opt.state_dict(),
-                    "sched": sched.state_dict(), "step": step}
+                    "sched": sched.state_dict(), "step": step, "best_val": best_val}
             torch.save(ckpt, ckpt_path + ".tmp")
             os.replace(ckpt_path + ".tmp", ckpt_path)
             print(f"  💾 saved checkpoint at step {step}")
@@ -121,8 +155,7 @@ def train():
         _, loss = model(*get_batch(train_data))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
 
-    torch.save(model.state_dict(), "brain.pt")
-    print("Saved brain.pt!")
+    print(f"Done! Best brain.pt score: {best_val:.3f}")
 
 def talk():
     model = TinyGPT().to(device)
