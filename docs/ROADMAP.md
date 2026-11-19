@@ -47,7 +47,7 @@ See `docs/CLOUD_GPU_100.md`.
 ## Phase 5: Ship it ($0)
 - [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.7544 → 1.7547 → 1.7718`, taste `1.7637 → 1.7639 → 1.7827`
 - [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
-- [x] Convert to mobile / Xcode bundle (`export_iphone.py` → `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt`, `iphone/HedwigApp.swift`) ready for an Xcode iPhone app (free Apple ID)
+- [x] Convert to mobile / Xcode bundle (`export_iphone.py` → Core ML `iphone/Hedwig.mlpackage`, 27.7 MB, **30/30** greedy pieces match PyTorch; Swift tokenizer matches Python; Xcode clicks in `ios/HedwigApp.swift`)
 - [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup
 
 ## Stretch ideas
@@ -55,7 +55,7 @@ See `docs/CLOUD_GPU_100.md`.
 - [x] **Distillation with teacher soft-labels** (`distill.py` → `3.4M` "🐣 Baby Hedwig" Student distilled from `13.8M` Teacher via `T=2.0` KL divergence, loss `7.602 → 2.521` in 600 steps, `brain_baby.pt` = `6.8 MB`)
 - [x] **Interactive "🔬 Brain X-Ray" in Mac Chat UI** (`app.py` — click any generated word to inspect Top-5 candidate probabilities and Top-2 active MoE experts)
 - [x] Layer-by-layer loading from SSD (`ssd_runner.py`: `52.9 MB → 18.8 MB` of weights in memory, `108 → 33 tok/s`, stories identical; process RAM only `403 → 372 MB` because the `28 MB` brain is smaller than PyTorch itself)
-- [ ] A low-resource-language Hedwig
+- [x] A low-resource-language Hedwig (`lang_hedwig.py`: 2.56M French brain on public-domain Dumas + Verne, val `7.776 → 3.541` in 600 steps / 57 s)
 
 ## Reading list
 - Karpathy, *Let's build GPT: from scratch, in code, spelled out* (YouTube) + `nanoGPT`

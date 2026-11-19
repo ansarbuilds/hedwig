@@ -42,6 +42,8 @@ python3.12 -m venv .venv
 .venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
 .venv/bin/python ssd_runner.py                                       # one layer at a time from SSD vs all-in-RAM
 .venv/bin/python mlx_bench.py                                    # MLX vs PyTorch speed on the same 13.8M brain
+.venv/bin/python export_iphone.py                                # Core ML brain + Swift app for Xcode
+.venv/bin/python lang_hedwig.py talk "Il était une fois un petit hibou "
 bash cloud_train.sh --dry-run                                        # 2-step rehearsal in dry_run/ (does not touch real brains)
 bash cloud_train.sh                                                  # rented GPU: full pipeline (or `--124m` for the 91.3M brain)
 ```
@@ -57,7 +59,10 @@ bash cloud_train.sh                                                  # rented GP
 | `distill.py` | Stretch: Teacher → Student soft-label distillation (`13.8M` Teacher → `3.4M` `6.8 MB` Baby Hedwig) |
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
 | `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 9 brains, word streaming, & 🔬 Live Brain X-Ray |
-| `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
+| `export_iphone.py` | Builds a Core ML iPhone brain and checks it against PyTorch |
+| `ios/HedwigApp.swift` | SwiftUI screen, sampler, and the Xcode clicks for a free Apple ID |
+| `ios/HedwigTokenizer.swift` | Swift word-piece dictionary, same numbers as `tokenizer.py` |
+| `lang_hedwig.py` | French Hedwig (2.56M) on public-domain books, saved under `lang/` |
 | `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
 | `mlx_bench.py` | Times the same 13.8M brain in Apple MLX and in PyTorch |
 | `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` is the 91.3M scale-up; restarts resume |
@@ -85,7 +90,8 @@ bash cloud_train.sh                                                  # rented GP
 - **Optional $0 Mac experiments (anytime before Dec 2026):**
   1. ~~**Layer-by-layer SSD streaming (`ssd_runner.py`):**~~ Done. `52.9 MB → 18.8 MB` of weights in memory, `108 → 33 tok/s`, same story. Process RAM only `403 → 372 MB`.
   2. ~~**Apple MLX vs PyTorch MPS benchmark (`mlx_bench.py`):**~~ Done. Practice step `596 ms → 99 ms` (16-bit MLX). Writing `635 → 832` word-pieces/sec. The greedy story matches.
-  3. **Second-language / low-resource Hedwig:** Train Hedwig on a non-English language using the same UTF-8 byte-level BPE tokenizer.
+  3. ~~**Second-language Hedwig (`lang_hedwig.py`):**~~ Done. A 2.56M French brain on public-domain Dumas and Verne, val `7.776 → 3.541`. The English brain is unchanged.
+  4. ~~**iPhone brain (`export_iphone.py`):**~~ Core ML matches PyTorch 30/30 pieces. Xcode clicks are at the top of `ios/HedwigApp.swift`. Press Play there when a phone or simulator is open.
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
   2. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).

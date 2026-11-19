@@ -28,9 +28,10 @@ def merge(ids, pair, new_id):
             i += 1
     return out
 
-def train(text, vocab_size=4096, verbose=True):
+def train(text, vocab_size=4096, verbose=True, pat=None):
     """Learn (vocab_size - 256) merges fast by counting unique word chunks."""
-    words = [[list(w.encode("utf-8")), c] for w, c in Counter(PAT.findall(text)).items()]
+    finder = pat or PAT
+    words = [[list(w.encode("utf-8")), c] for w, c in Counter(finder.findall(text)).items()]
     stats, where = defaultdict(int), defaultdict(set)
     for idx, (ids, c) in enumerate(words):
         for p in zip(ids, ids[1:]):
@@ -76,12 +77,13 @@ def _encode_chunk(chunk_bytes, merges):
         ids = merge(ids, pair, merges[pair])
     return ids
 
-def encode(text, merges, cache=None):
+def encode(text, merges, cache=None, pat=None):
     """Text -> list of piece numbers, caching each unique word chunk for speed."""
+    finder = pat or PAT
     if cache is None:
         cache = {}
     out = []
-    for chunk in PAT.findall(text):
+    for chunk in finder.findall(text):
         ids = cache.get(chunk)
         if ids is None:
             ids = cache[chunk] = _encode_chunk(chunk.encode("utf-8"), merges)

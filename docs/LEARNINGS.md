@@ -292,3 +292,25 @@ The practice step in MLX is compiled into one GPU recipe. PyTorch uses the same 
 The loss numbers during the practice timing (`5.14` vs `8.45`) are not a quality score. Each toolbox starts from its own random knobs. The fair check copies `brain.pt` into MLX. The biggest logit gap on the prompt was `0.012`, and the next `80` most-likely pieces matched exactly, including `"The owl was walking through the forest when he saw a big, scary wolf."`
 
 Writing is only a little faster because each new word is a tiny job, and Python asks for the next word one at a time. Practice is where MLX wins: that step updates every knob, and `596 ms → 99 ms` is the whole class finishing the worksheet six times quicker. The chat app's earlier `~108 tok/s` also rolls dice (top-k, repetition penalty) and streams words to the browser. This test skips the dice and only times the thinking. Run it again with `.venv/bin/python mlx_bench.py`.
+
+## 28. A phone brain that matches PyTorch (`export_iphone.py`) ✅
+
+The old iPhone file was a screen with a pretend sentence behind the button. Core ML also refused the live brain, because that brain asks “how long is this sentence?” in a way the phone converter cannot follow.
+
+The phone version sits at a desk with **64 fixed seats**. Real word-pieces sit on the left. Empty seats are zeros on the right. The next-word scores are read at the last real seat, so the zeros do not change the choice. Same knobs as `brain_dpo.pt`, 16-bit Core ML, **27.7 MB**, saved as `iphone/Hedwig.mlpackage` (that folder stays off git; rebuild with `.venv/bin/python export_iphone.py`).
+
+Check: 30 new pieces, always the most likely one, prompt `"Once upon a time, a little owl "`. **Core ML matched PyTorch 30/30**, both continuing `"igloo came to visit. The owl had a big, shiny crown..."`.
+
+The Swift dictionary (`ios/HedwigTokenizer.swift`) was compiled on the Mac and matched Python’s piece numbers on `"Once upon a time, a little owl "` (9 pieces) and `"Hello, Hedwig!"` (7 pieces). The Xcode clicks for a free Apple ID are written at the top of `ios/HedwigApp.swift`. A physical phone was not plugged in here, so the last step (press Play in Xcode) is yours.
+
+## 29. French Hedwig (`lang_hedwig.py`) ✅
+
+A separate small brain, so the English `brain.pt` is untouched. Books are public domain via GITenberg: *Les Trois Mousquetaires* and *Vingt mille lieues sous les mers* (about **3.7 MB** of French). A Notre-Dame file turned out to be an English translation, so it was left out.
+
+The English dictionary drops letters like `é` because it only groups `a-z`. French uses its own pattern that keeps `é à ç œ`, and its own `lang/tokenizer.json` (2,048 pieces). Round-trip of `"Il était une fois un cœur à Noël."` stays intact.
+
+Brain: **2.56M** knobs (4 layers, 192 wide). 600 steps, about **57 s** on the M4. Val score on held-out French:
+
+`step 0: 7.776 · 100: 4.524 · 200: 4.050 · 300: 3.803 · 400: 3.649 · 500: 3.541 (best) · 600: 3.588`
+
+Prompt `"Il était une fois un petit hibou "` continued in French, accents included, grammar still wobbly: `"Il était une fois un petit hibou ; le servectivement, un petit sant de ses eaux..."`. That is one hour of class, not a finished novelist. Run `.venv/bin/python lang_hedwig.py talk "Il était une fois un petit hibou "`.

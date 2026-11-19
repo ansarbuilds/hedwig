@@ -21,7 +21,8 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
 - `how-hedwig-learns.html`: interactive visual explainer updated with all Phase 1–5 & Stage 1–3 measured curves
 - `cloud_train.sh`: 1-command cloud GPU script. `bash cloud_train.sh --dry-run` rehearses 2 steps in `dry_run/`. On a GPU: `bash cloud_train.sh` (13.8M smoke) or `bash cloud_train.sh --124m` (91,286,272 knobs, 20,000 steps). Restarts resume; `--fresh` wipes saves. Private clone steps are in `docs/CLOUD_GPU_100.md`.
-- `export_iphone.py`: exports `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt` (`7.9 MB`), and `iphone/HedwigApp.swift` for Xcode
+- `export_iphone.py`: builds a Core ML brain (`iphone/Hedwig.mlpackage`, 27.7 MB, 64 fixed seats) that matched PyTorch on 30/30 greedy pieces, plus `ios/HedwigApp.swift` (real sampling loop) and `ios/HedwigTokenizer.swift` (same piece numbers as Python). `.venv/bin/python export_iphone.py`
+- `lang_hedwig.py`: French Hedwig, separate from the English brain. 2.56M knobs on public-domain *Mousquetaires* + *Vingt mille lieues*, val `7.776 → 3.541` in 600 steps. `.venv/bin/python lang_hedwig.py train` / `talk "Il était une fois un petit hibou "`
 - `ssd_runner.py`: "LLM in a Flash" layer streaming. Splits `brain_dpo.pt` into `ssd_layers/` and loads one block at a time. Measured on M4: weights in memory `52.9 MB → 18.8 MB`, speed `108 → 33 tok/s`, peak process RAM `403 → 372 MB` (stories identical). `.venv/bin/python ssd_runner.py`
 - `mlx_bench.py`: same 13.8M brain in Apple MLX vs PyTorch `mps`. Practice step `596 → 99 ms` (16-bit), generation `635 → 832 tok/s`, greedy story identical. `.venv/bin/python mlx_bench.py`
 
@@ -43,7 +44,7 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 ### Optional $0 Mac experiments (anytime before Dec 2026):
 1. ~~Layer-by-layer SSD loading~~ ✅ (`ssd_runner.py`: `52.9 → 18.8 MB` weights in RAM, `108 → 33 tok/s`).
 2. ~~Apple MLX vs PyTorch MPS~~ ✅ (`mlx_bench.py`: practice `596 → 99 ms`, generation `635 → 832 tok/s`, same story).
-3. Low-resource / second-language Hedwig using the same UTF-8 BPE tokenizer.
+3. ~~Low-resource / second-language Hedwig~~ ✅ (`lang_hedwig.py`, French, val `7.776 → 3.541`).
 
 ### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
 1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` (91,286,272 knobs, 500 MB of stories). Local `--dry-run` already passed.

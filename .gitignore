@@ -22,3 +22,7 @@ brain_baby.pt.tmp
 iphone/
 ssd_layers/
 dry_run/
+lang/books/
+lang/*.bin
+lang/ckpt.pt
+lang/ckpt.pt.tmp

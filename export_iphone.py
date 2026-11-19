@@ -1,117 +1,126 @@
 """
-Phase 5 for Hedwig: Export Hedwig for iPhone (Xcode / SwiftUI + TorchScript / Core ML ready).
+Build a Hedwig the iPhone can actually run.
 
-What this script builds in `iphone/` (gitignored folder):
-1. `iphone/hedwig_mobile.pt` — A traced TorchScript version of your 13.8M Stage 3 DPO
-   storyteller (wrapped so input is token IDs and output is next-token logits, without
-   Python dependencies, ready for PyTorch Mobile or coremltools conversion).
-2. `iphone/hedwig_int4.pt` & `iphone/tokenizer.json` — Your 7.9 MB 4-bit brain + 4,096-piece
-   BPE vocabulary.
-3. `iphone/HedwigApp.swift` — A complete, self-contained SwiftUI iPhone view you can paste
-   straight into a free Xcode iOS App project.
+The phone gets a fixed desk: 64 word-pieces. Real words sit on the left,
+empty seats (zeros) pad the right. The brain only reads the last real word's
+scores, so the empty seats do not change the story. Core ML is the format
+Xcode understands. We check it against PyTorch before we call it done.
 
-Run:   .venv/bin/python export_iphone.py
+Run:  .venv/bin/python export_iphone.py
 """
 import os, shutil
-import torch, torch.nn as nn
+import numpy as np
+import torch
+import torch.nn as nn
+import coremltools as ct
 import tinygpt
 
-OUT_DIR = "iphone"
+SEQ = 64
+OUT = "iphone"
+SRC = "brain_dpo.pt" if os.path.exists("brain_dpo.pt") else "brain_chat.pt"
 
-class MobileHedwig(nn.Module):
-    """Inference-only wrapper that takes (1, T) token IDs and returns (1, vocab_size) next-token logits."""
+def phone_attn(attn, x):
+    """Same attention as tinygpt.py, with the length baked in as the number 64."""
+    n_embd, n_head = tinygpt.n_embd, tinygpt.n_head
+    head_dim = n_embd // n_head
+    q, k, v = attn.qkv(x).split(n_embd, dim=-1)
+    q = q.view(1, SEQ, n_head, head_dim).transpose(1, 2)
+    k = k.view(1, SEQ, n_head, head_dim).transpose(1, 2)
+    v = v.view(1, SEQ, n_head, head_dim).transpose(1, 2)
+    cos, sin = attn.cos[:, :, :SEQ], attn.sin[:, :, :SEQ]
+    def rope(t):
+        a, b = t.chunk(2, dim=-1)
+        return torch.cat([a * cos - b * sin, a * sin + b * cos], dim=-1)
+    q, k = rope(q), rope(k)
+    scores = (q @ k.transpose(-2, -1)) * (head_dim ** -0.5)
+    mask = torch.triu(torch.ones(SEQ, SEQ, device=x.device), diagonal=1).bool()
+    scores = scores.masked_fill(mask, -1e4)
+    out = torch.softmax(scores, dim=-1) @ v
+    out = out.transpose(1, 2).contiguous().view(1, SEQ, n_embd)
+    return attn.proj(out)
+
+class PhoneHedwig(nn.Module):
     def __init__(self, base):
         super().__init__()
         self.base = base
     def forward(self, idx):
-        logits, _ = self.base(idx)
-        return logits[:, -1, :]
+        x = self.base.tok(idx.long())
+        for block in self.base.blocks:
+            x = x + phone_attn(block.attn, block.ln1(x))
+            x = x + block.mlp(block.ln2(x))
+        return self.base.head(self.base.ln(x))
 
-SWIFT_TEMPLATE = """// HedwigApp.swift — Drop into a new Xcode iOS App project (free Apple ID works!)
-import SwiftUI
+def pad(ids):
+    ids = ids[:SEQ]
+    return ids + [0] * (SEQ - len(ids)), len(ids)
 
-struct ContentView: View {
-    @State private var prompt: String = "Tell me a story where a little girl named Lily finds a shiny key."
-    @State private var story: String = "Tap 'Write Story' to run Hedwig offline on your iPhone!"
-    @State private var isGenerating: Bool = false
-
-    var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("🦉 Hedwig · 13.8M Offline Storyteller")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-
-                TextField("Ask for a story...", text: $prompt, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(2...4)
-
-                Button(action: generateStory) {
-                    HStack {
-                        Spacer()
-                        Text(isGenerating ? "Writing..." : "Write Story")
-                            .fontWeight(.bold)
-                        Spacer()
-                    }
-                    .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isGenerating)
-
-                ScrollView {
-                    Text(story)
-                        .font(.body)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                }
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-            .padding()
-            .navigationTitle("Hedwig")
-        }
-    }
-
-    func generateStory() {
-        isGenerating = true
-        // Loads hedwig_mobile.pt + tokenizer.json bundled in Xcode project resources
-        story = "🦉 [Connected to bundled hedwig_mobile.pt (13.8M params, 4,096 BPE vocab)]\\n\\nPrompt: \\(prompt)"
-        isGenerating = false
-    }
-}
-"""
+def greedy(predict, ids, n_new):
+    """Always pick the most likely next piece. predict(padded) -> logits [SEQ, V]."""
+    out = list(ids)
+    for _ in range(n_new):
+        if len(out) >= SEQ:
+            break
+        padded, n = pad(out)
+        logits = predict(padded)
+        out.append(int(logits[n - 1].argmax()))
+    return out
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
-    src = "brain_dpo.pt" if os.path.exists("brain_dpo.pt") else "brain_chat.pt"
-    print(f"1/3 Loading {src} on CPU for clean mobile tracing...", flush=True)
-    base = tinygpt.TinyGPT().to("cpu")
-    base.load_state_dict(torch.load(src, map_location="cpu"))
-    base.eval()
-
-    wrapper = MobileHedwig(base).eval()
-    example_idx = torch.tensor([[1, 2, 3, 4, 5, 6, 7, 8]], dtype=torch.long)
-
-    print("2/3 Tracing TorchScript mobile model -> iphone/hedwig_mobile.pt ...", flush=True)
+    os.makedirs(OUT, exist_ok=True)
+    os.makedirs("ios", exist_ok=True)
+    print(f"1/4 Loading {SRC} ...", flush=True)
+    base = tinygpt.TinyGPT().cpu().eval()
+    base.load_state_dict(torch.load(SRC, map_location="cpu", weights_only=True))
+    phone = PhoneHedwig(base).eval()
+    example = torch.zeros(1, SEQ, dtype=torch.long)
     with torch.no_grad():
-        traced = torch.jit.trace(wrapper, example_idx)
-        out_logits = traced(example_idx)
-    mobile_path = os.path.join(OUT_DIR, "hedwig_mobile.pt")
-    traced.save(mobile_path)
+        traced = torch.jit.trace(phone, example)
 
-    shutil.copyfile("tokenizer.json", os.path.join(OUT_DIR, "tokenizer.json"))
-    if os.path.exists("brain_chat_int4.pt"):
-        shutil.copyfile("brain_chat_int4.pt", os.path.join(OUT_DIR, "hedwig_int4.pt"))
+    print("2/4 Converting to Core ML (this is the file Xcode runs)...", flush=True)
+    ml = ct.convert(
+        traced,
+        inputs=[ct.TensorType(name="ids", shape=(1, SEQ), dtype=np.int32)],
+        outputs=[ct.TensorType(name="logits")],
+        convert_to="mlprogram",
+        compute_precision=ct.precision.FLOAT16,
+        minimum_deployment_target=ct.target.iOS16,
+    )
+    model_path = os.path.join(OUT, "Hedwig.mlpackage")
+    if os.path.exists(model_path):
+        shutil.rmtree(model_path)
+    ml.save(model_path)
 
-    print("3/3 Writing SwiftUI Xcode template -> iphone/HedwigApp.swift ...", flush=True)
-    swift_path = os.path.join(OUT_DIR, "HedwigApp.swift")
-    open(swift_path, "w").write(SWIFT_TEMPLATE)
+    prompt = "Once upon a time, a little owl "
+    ids = tinygpt.encode(prompt)
 
-    print(f"  ✓ Traced output shape verified: {tuple(out_logits.shape)} (expected (1, {tinygpt.vocab_size}))")
-    print(f"  ✓ {mobile_path}: {os.path.getsize(mobile_path)/1e6:.1f} MB")
-    if os.path.exists(os.path.join(OUT_DIR, "hedwig_int4.pt")):
-        print(f"  ✓ iphone/hedwig_int4.pt:   {os.path.getsize(os.path.join(OUT_DIR, 'hedwig_int4.pt'))/1e6:.1f} MB (4-bit)")
-    print(f"  ✓ {swift_path} & iphone/tokenizer.json ready for Xcode!")
+    def predict_torch(padded):
+        with torch.no_grad():
+            logits = phone(torch.tensor([padded]))
+        return logits[0].float()
+
+    def predict_coreml(padded):
+        got = ml.predict({"ids": np.array([padded], dtype=np.int32)})
+        return torch.tensor(np.array(got["logits"][0]), dtype=torch.float32)
+
+    story_pt = greedy(predict_torch, ids, 30)
+    story_ml = greedy(predict_coreml, ids, 30)
+    new_pt, new_ml = story_pt[len(ids):], story_ml[len(ids):]
+    same = sum(a == b for a, b in zip(new_pt, new_ml))
+    print(f"3/4 Core ML matched PyTorch on {same}/{len(new_pt)} new pieces.")
+    print("   PyTorch:", tinygpt.decode(new_pt)[:180])
+    print("   Core ML:", tinygpt.decode(new_ml)[:180])
+
+    shutil.copyfile("tokenizer.json", os.path.join(OUT, "tokenizer.json"))
+    shutil.copyfile("ios/HedwigTokenizer.swift", os.path.join(OUT, "HedwigTokenizer.swift"))
+    shutil.copyfile("ios/HedwigApp.swift", os.path.join(OUT, "HedwigApp.swift"))
+    # A few sentences so we can check the Swift dictionary against Python.
+    import json
+    checks = ["Once upon a time, a little owl ", "Hello, Hedwig!"]
+    json.dump([{"text": s, "ids": tinygpt.encode(s)} for s in checks],
+              open(os.path.join(OUT, "bpe_check.json"), "w"), ensure_ascii=False, indent=2)
+    mb = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fs in os.walk(model_path) for f in fs) / 1e6
+    print(f"4/4 Wrote {model_path} ({mb:.1f} MB), tokenizer, and the Swift app.")
+    print("Xcode steps are at the top of ios/HedwigApp.swift.")
 
 if __name__ == "__main__":
     main()
