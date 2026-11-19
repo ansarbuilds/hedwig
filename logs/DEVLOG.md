@@ -19,3 +19,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **21:15** Complete Phase 1: add RMSNorm, SwiGLU, bf16 autocast, and SDPA (`14cbff2`)
 - **22:04** Complete Phase 2: TinyStories + Gutenberg pipeline, 4096-vocab BPE, 13.8M storyteller (val 2.276 at step 1500) (`4bb7820`)
 - **22:36** Finish 3000-step 13.8M storyteller run (val 2.080) and save brain.pt in 27.8 MB bfloat16 (`b70b807`)
+- **22:54** Add Stage 2 SFT (sft.py) and 13.8M chat storyteller weights (brain_chat.pt, loss 1.766) (`c6232e6`)
