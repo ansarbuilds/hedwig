@@ -8,7 +8,11 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
 - **v3 (Phase 2.5 — Stage 2 SFT + Stage 3 DPO + 8-bit/4-bit Quantization + Mac UI):**
   - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.7544`**, `brain_chat.pt` = `27.8 MB`).
   - **Stage 3 DPO (`dpo.py`):** Direct Preference Optimization on `13,852` chosen 👍 vs rejected 👎 pairs with a fluency anchor (**`91.7%` preference win-rate**, `brain_dpo.pt` = `27.8 MB`).
-  - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, served in an offline Mac web UI (`app.py`):
+  - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, accelerated with **KV Cache (`89 tok/s`, `1.89×` faster)** + Top-k + repetition penalty, and served in an offline Mac web UI (`app.py`) with live word-by-word streaming and clickable **🔬 Brain X-Ray**.
+- **v4 (Stretch Goals Complete on Mac for $0):**
+  - **Mixture-of-Experts (`moe.py`):** 8 specialist experts, top-2 routing (`26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
+  - **Knowledge Distillation (`distill.py`):** `13.8M` Teacher → `3.4M` **🐣 Baby Hedwig** Student (`brain_baby.pt`, `6.8 MB`, loss `7.602 → 2.521`).
+  - **Mobile & Cloud Packaging (`export_iphone.py`, `cloud_train.sh`, `how-hedwig-learns.html`):** TorchScript + 4-bit + SwiftUI iPhone bundle, 1-command Dec 2026 cloud GPU script, and updated interactive field guide.
 
 ```
 🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
@@ -59,14 +63,21 @@ bash cloud_train.sh                                                  # 1-command
 | `brain_dpo.pt` | Stage 3 DPO preference-tuned weights (`27.8 MB` in `bfloat16`, `91.7%` preference win-rate) |
 | `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.7547`) |
 | `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.7718`) |
+| `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
-| `how-hedwig-learns.html` | Visual explainer: knobs, training, model sizes |
-| `docs/LEARNINGS.md` | Concepts and measured results |
-| `docs/ROADMAP.md` | What to build next |
-| `docs/CLOUD_GPU_100.md` | How to spend $100 of cloud GPU time |
+| `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5 & Stage 1–3 measured curves |
+| `docs/LEARNINGS.md` | Concepts and 23 sections of measured results |
+| `docs/ROADMAP.md` | Complete project plan & stretch checklist |
+| `docs/CLOUD_GPU_100.md` | Dec 2026 $100 cloud GPU guide & safety checklist |
 | `logs/DEVLOG.md` | Automatic daily dev log (updated on push) |
 | `AGENTS.md` | Context for AI coding assistants |
 
-## Where it's going
-- **Next on Mac ($0):** Stage 3 DPO preference tuning (`dpo.py`), updating `how-hedwig-learns.html`, a 1-command cloud training script, and Core ML iPhone export.
-- **Next Month (Dec 2026, ~$15–100 cloud GPU):** Scale up to ~124M–560M parameters on the full `1.9 GB` TinyStories + Gutenberg dataset and run Karpathy's `nanochat` speedrun. See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).
+## Next Steps & Plan
+- **All core $0 MacBook Air milestones are complete ✅!**
+- **Optional $0 Mac experiments (anytime before Dec 2026):**
+  1. **Layer-by-layer SSD streaming (`ssd_runner.py`):** Apple *"LLM in a Flash"* / AirLLM style — load 1 layer at a time off SSD and measure peak RAM vs speed.
+  2. **Apple MLX vs PyTorch MPS benchmark:** Compare Apple's native Silicon framework against PyTorch `mps` on the 13.8M Transformer.
+  3. **Second-language / low-resource Hedwig:** Train Hedwig on a non-English language using the same UTF-8 byte-level BPE tokenizer.
+- **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
+  1. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).
+  2. Run `bash cloud_train.sh --124m` to scale Hedwig up to ~115M–124M parameters (GPT-2 Small size) on `500 MB – 1.9 GB` of TinyStories + Project Gutenberg (plus Karpathy's `nanochat` speedrun), copy weights back to Mac, and quantize for Mac & iPhone. See [docs/ROADMAP.md](docs/ROADMAP.md).

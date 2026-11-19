@@ -37,6 +37,11 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
 ## Next tasks (see `docs/ROADMAP.md`)
-### All $0 MacBook Air milestones are complete ✅!
+### All core $0 MacBook Air milestones are complete ✅!
+### Optional $0 Mac experiments (anytime before Dec 2026):
+1. Layer-by-layer SSD loading (`ssd_runner.py`, AirLLM / "LLM in a Flash" style: peak RAM vs speed).
+2. Apple MLX vs PyTorch MPS speed benchmark on the 13.8M Transformer.
+3. Low-resource / second-language Hedwig using the same UTF-8 BPE tokenizer.
+
 ### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
 1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` to scale Hedwig to ~115M+ params on `500 MB – 1.9 GB` TinyStories + Gutenberg (plus Karpathy's `nanochat` speedrun).
