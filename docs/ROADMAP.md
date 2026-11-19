@@ -20,7 +20,7 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 - [x] Download **TinyStories** from Hugging Face (`roneneldan/TinyStories` — `52.4 MB` train + `10.5 MB` val)
 - [x] Download a subset of **Project Gutenberg** (10 public-domain pre-1929 storybooks: *Alice*, *Looking-Glass*, *Wizard of Oz*, *Peter Pan*, *Grimm*, *Andersen*, *Jungle Book*, *Treasure Island*, *Sherlock Holmes*, *Time Machine* — `~3.0 MB` cleaned)
 - [x] Write `prepare_data.py`: clean → train 4,096-vocab BPE (`3.87` chars/token) → save as `uint16` `.bin` shards (`14.1M` train tokens in `data/train.bin`, `2.7M` val tokens in `data/val.bin`)
-- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.080` across 3,000 steps with zero overfitting; writes coherent short stories; `brain.pt` saved in `bfloat16` at `27.8 MB`).
+- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.080`, then `more_english.py` on 200 MB of stories → **`2.010`**). Chat manners refreshed to **`1.723`**.
 
 ## Phase 2.5: Full ChatGPT pipeline & shipping on Mac (Air, $0 — Done ✅ / In Progress)
 Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and proved the entire post-training & shipping stack locally on the 13.8M model first:

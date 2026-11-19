@@ -6,7 +6,8 @@ Hedwig is a learning project: build a ChatGPT-style language model from scratch,
 Long-term goal: a focused **storytelling** model that runs offline on a 16 GB MacBook Air M4 and an iPhone.
 
 ## Current state
-- `tinygpt.py`: Stage 1 modern BPE-based GPT (4,096 vocab) with RoPE + RMSNorm + SwiGLU + bf16 autocast + `F.scaled_dot_product_attention`, ~13.8M params (`block_size=256, n_embd=384, n_head=6, n_layer=6`), reading `uint16` shards (`data/train.bin`, `data/val.bin`). `.venv/bin/python tinygpt.py train` / `.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "`
+- `tinygpt.py`: Stage 1 modern BPE-based GPT (4,096 vocab) with RoPE + RMSNorm + SwiGLU + bf16 autocast + `F.scaled_dot_product_attention`, ~13.8M params. After `more_english.py` (200 MB TinyStories, same dictionary), val loss **`2.010`** on the original test pages (was `2.080`). `.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "`
+- `more_english.py`: extra English reading from `brain.pt` on `data/train_more.bin` (54M pieces), then refreshes SFT and DPO. Chat score **`1.723`** (was `1.754`). `.venv/bin/python more_english.py`
 - `sft.py`: Stage 2 Supervised Fine-Tuning (`13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking) + interactive chat. `.venv/bin/python sft.py train` / `.venv/bin/python sft.py talk "Write a story..."` / `.venv/bin/python sft.py chat`
 - `dpo.py`: Stage 3 Direct Preference Optimization (`13,852` chosen 👍 vs rejected 👎 pairs with fluency anchor; `0% → 91.7%` win-rate in 100 steps). `.venv/bin/python dpo.py train` / `.venv/bin/python dpo.py talk "Write a short story about dragon and castle."`
 - `moe.py`: Mixture-of-Experts Hedwig (`26.2M` total / `11.6M` active params, 8 experts top-2, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).

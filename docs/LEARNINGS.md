@@ -314,3 +314,17 @@ Brain: **2.56M** knobs (4 layers, 192 wide). 600 steps, about **57 s** on the M4
 `step 0: 7.776 · 100: 4.524 · 200: 4.050 · 300: 3.803 · 400: 3.649 · 500: 3.541 (best) · 600: 3.588`
 
 Prompt `"Il était une fois un petit hibou "` continued in French, accents included, grammar still wobbly: `"Il était une fois un petit hibou ; le servectivement, un petit sant de ses eaux..."`. That is one hour of class, not a finished novelist. Run `.venv/bin/python lang_hedwig.py talk "Il était une fois un petit hibou "`.
+
+## 30. More English stories (`more_english.py`) ✅
+
+The first English brain had read about **50 MB** of TinyStories (plus 10 novels) and leveled off at val **`2.080`**. Picture a student who has finished one thin storybook and keeps rereading it. This run handed that same student a **200 MB** stack, cut with the **same** 4,096-piece dictionary, and the test pages stayed `data/val.bin`. Extra practice was **2,000 steps** at a gentler learning rate (`3e-4`), about **33 minutes** of the reading plus the chat lessons after.
+
+| | Before | After more stories |
+|---|---:|---:|
+| Storytelling val score (same test pages) | 2.080 | **2.010** (best at step 1,500) |
+| Chat manners score (Stage 2) | 1.7544 | **1.723** (best at step 600) |
+| Taste win-rate (Stage 3) | 91.7% | **92.5%** at step 50, saved file is step 150 at **90.4%** because the fluency-anchored score kept falling (`1.541 → 1.440`) |
+
+The reading curve: `0: 2.080 · 250: 2.105 · 500: 2.090 · 750: 2.040 · 1000: 2.038 · 1250: 2.045 · 1500: 2.010 · 1750: 2.030 · 2000: 2.046`. It got a little worse at first (the new stories tugged the knobs), then beat the old score. The train pile is **54.0M** pieces, up from **14.1M**.
+
+Asked for an owl in a tree, the new taste brain wrote a full little story. Names still wander (Tweet, then Spark, then Sparky), which is the same small-brain habit, but the score on held-out stories is lower, which means closer to the real TinyStories pages. Previous chat files are in `brain_chat.pt.bak` and `brain_dpo.pt.bak` if you want the old ones back. Run `.venv/bin/python more_english.py` to resume; it will not rebuild the 200 MB file.

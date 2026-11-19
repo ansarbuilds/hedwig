@@ -9,6 +9,9 @@ data/*
 !data/input.txt
 ckpt.pt
 ckpt.pt.tmp
+ckpt_more.pt
+ckpt_more.pt.tmp
+*.bak
 brain.pt.tmp
 ckpt_sft.pt
 ckpt_sft.pt.tmp

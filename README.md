@@ -4,10 +4,10 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
 
 ## Progress so far (all trained on a MacBook Air M4 for $0)
 - **v1 (Phase 0):** 4.8M-parameter character-level Transformer on Tiny Shakespeare (~16 min, loss `1.481`).
-- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained 3,000 steps on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, val loss **`2.080`**, `brain.pt` = `27.8 MB`).
+- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer. After a second read of **200 MB** of TinyStories (`more_english.py`, 54M pieces), val loss on the same test pages is **`2.010`** (was `2.080`). Chat manners **`1.723`** (was `1.754`). `brain.pt` = `27.8 MB`.
 - **v3 (Phase 2.5 — Stage 2 SFT + Stage 3 DPO + 8-bit/4-bit Quantization + Mac UI):**
-  - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.7544`**, `brain_chat.pt` = `27.8 MB`).
-  - **Stage 3 DPO (`dpo.py`):** Direct Preference Optimization on `13,852` chosen 👍 vs rejected 👎 pairs with a fluency anchor (**`91.7%` preference win-rate**, `brain_dpo.pt` = `27.8 MB`).
+  - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.723`** after the extra reading, was `1.7544`).
+  - **Stage 3 DPO (`dpo.py`):** Preference tuning on the same pairs. Peak win-rate **`92.5%`** (step 50); the saved brain is step 150 at **`90.4%`** because the fluency-anchored score was still falling.
   - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, accelerated with **KV Cache (`89 tok/s`, `1.89×` faster)** + Top-k + repetition penalty, and served in an offline Mac web UI (`app.py`) with live word-by-word streaming and clickable **🔬 Brain X-Ray**.
 - **v4 (Stretch Goals Complete on Mac for $0):**
   - **Mixture-of-Experts (`moe.py`):** 8 specialist experts, top-2 routing (`26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
