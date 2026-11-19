@@ -17,7 +17,9 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `data/input.txt`: Tiny Shakespeare
 - `logs/DEVLOG.md`: automatic daily commit log via `.github/workflows/devlog.yml`
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
-- `how-hedwig-learns.html`: visual explainer (static page)
+- `how-hedwig-learns.html`: interactive visual explainer updated with all Phase 1–5 & Stage 1–3 measured curves
+- `cloud_train.sh`: 1-command cloud GPU script (`bash cloud_train.sh` or `bash cloud_train.sh --124m`) ready for Dec 2026
+- `export_iphone.py`: exports `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt` (`7.9 MB`), and `iphone/HedwigApp.swift` for Xcode
 
 ## Environment
 - Local: macOS, Apple M4, 16 GB RAM, Python 3.12 venv in `.venv` (not committed). PyTorch uses `mps`.
@@ -33,9 +35,6 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
 ## Next tasks (see `docs/ROADMAP.md`)
-### Now on MacBook Air ($0, before next month's cloud GPU run):
-1. **Refresh `how-hedwig-learns.html`**: Update the visual explainer with measured Phase 1–5 (and Stage 1–3) results.
-2. **Cloud-ready script (`cloud_train.sh`) & iPhone export (`export_iphone.py`)**: Prepare 1-command cloud scale-up script and Core ML iPhone export.
-
+### All $0 MacBook Air milestones are complete ✅!
 ### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
-4. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test), scale Hedwig to ~124M+ params on full `1.9 GB` TinyStories + Gutenberg, and run Karpathy's `nanochat` speedrun end to end.
+1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` to scale Hedwig to ~115M+ params on `500 MB – 1.9 GB` TinyStories + Gutenberg (plus Karpathy's `nanochat` speedrun).

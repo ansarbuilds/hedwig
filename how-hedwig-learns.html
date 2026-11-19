@@ -20,7 +20,7 @@
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
-main{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+main{max-width:740px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
 h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
 h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em}
 h2{font-size:1.75rem;font-weight:700}
@@ -35,8 +35,10 @@ section{display:flex;flex-direction:column;gap:16px}
 .note b{color:var(--amber)}
 button{font:inherit;font-weight:700;background:var(--accent);color:var(--surface);border:0;border-radius:10px;padding:10px 16px;cursor:pointer}
 button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+button.ghost.active{background:var(--accent);color:var(--surface)}
 button:focus-visible,input:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pill{display:inline-block;font-family:var(--mono);font-size:.82rem;padding:4px 10px;border-radius:8px;background:var(--accent-soft);color:var(--accent);margin:2px}
 
 /* knob */
 .knobwrap{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
@@ -64,7 +66,7 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
 
 /* scale */
 .scale{display:flex;flex-direction:column;gap:10px}
-.srow{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:center}
+.srow{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:center}
 @media (max-width:520px){.srow{grid-template-columns:1fr}}
 .slabel{font-weight:700;font-size:.95rem}
 .slabel small{display:block;font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.8rem}
@@ -74,30 +76,33 @@ table{border-collapse:collapse;width:100%;font-size:.92rem}
 td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
 td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
 .tablewrap{overflow-x:auto}
+.storybox{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;font-size:.95rem;white-space:pre-wrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <main>
 <header style="display:flex;flex-direction:column;gap:14px">
-  <div class="lesson">A field guide for new owl trainers</div>
-  <h1>How Hedwig Learns</h1>
-  <p class="lead">What a "knob" is, what "training" really does, and how a brain grows from one knob to 100 million. Play with the toys as you go.</p>
+  <div class="lesson">A field guide for new owl trainers · Updated through Stage 3 DPO &amp; 4-bit Quantization</div>
+  <h1>🦉 How Hedwig Learns</h1>
+  <p class="lead">From one knob to a 13.8-million-knob modern storyteller trained through all 3 ChatGPT stages (Pretraining → SFT → DPO) and shrunk to 7.9 MB on a MacBook Air M4.</p>
 </header>
 
 <section>
-  <div class="lesson">Lesson 1 · The guessing game</div>
-  <h2>An LLM only plays one game</h2>
-  <p>It looks at some text and guesses what comes next. That's it. Hedwig guesses the next <b>letter</b>. Fable guesses the next <b>word piece</b>. Every answer you've ever gotten from a chatbot was built one guess at a time.</p>
+  <div class="lesson">Lesson 1 · The guessing game &amp; BPE word-pieces</div>
+  <h2>An LLM only plays one game: guess the next piece</h2>
+  <p>Hedwig v1 guessed one <b>letter</b> at a time (65 symbols). Hedwig v2/v3 uses a <b>4,096-piece BPE tokenizer</b> (<span class="mono">tokenizer.py</span>) that glues common letters into whole words (<span class="mono">3.87 letters/token</span>)—so its 256-slot memory holds ~1,000 letters of story at once!</p>
   <div class="toy">
-    <div class="sentence">peanut butter and <span style="color:var(--accent);font-weight:700">j</span><span style="color:var(--muted)">_</span></div>
-    <p style="color:var(--muted);font-size:.95rem">Hedwig must guess the next letter. A smart guess is "e" (for "jelly").</p>
+    <h3>Real 4,096-vocab BPE split (69 letters → 19 word-pieces):</h3>
+    <div>
+      <span class="pill">'Once'</span><span class="pill">' upon'</span><span class="pill">' a'</span><span class="pill">' time'</span><span class="pill">','</span><span class="pill">' a'</span><span class="pill">' little'</span><span class="pill">' owl'</span><span class="pill">' named'</span><span class="pill">' H'</span><span class="pill">'ed'</span><span class="pill">'w'</span><span class="pill">'ig'</span><span class="pill">' found'</span><span class="pill">' a'</span><span class="pill">' shiny'</span><span class="pill">' golden'</span><span class="pill">' key'</span><span class="pill">'.'</span>
+    </div>
   </div>
 </section>
 
 <section>
   <div class="lesson">Lesson 2 · What a knob is</div>
   <h2>A knob is just one number</h2>
-  <p>Inside Hedwig there are numbers like <span class="mono">0.37</span> or <span class="mono">-1.2</span>. Each one nudges a guess a little. Turn it one way and "e" gets more likely; turn it the other way and "x" does. Engineers call these numbers <b>parameters</b> or <b>weights</b>. We call them knobs.</p>
+  <p>Inside Hedwig there are numbers like <span class="mono">0.37</span> or <span class="mono">-1.2</span>. Each one nudges a guess a little. Turn it one way and "key" gets more likely; turn it the other way and "x" does. Engineers call these numbers <b>parameters</b> or <b>weights</b>. We call them knobs.</p>
   <div class="toy">
     <h3>Try it: one knob, three guesses</h3>
     <div class="knobwrap">
@@ -106,19 +111,18 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
     </div>
     <label for="knob" class="mono" style="font-size:.85rem">Knob value: <b id="kval">-2.0</b></label>
     <input type="range" id="knob" min="-4" max="4" step="0.1" value="-2">
-    <p style="font-size:.95rem">Drag the slider. When the knob is set right, the green bar (the correct letter "e") is the biggest. That means Hedwig guesses well.</p>
+    <p style="font-size:.95rem">Drag the slider. When the knob is set right, the green bar (the right guess) is the biggest.</p>
   </div>
 </section>
 
 <section>
   <div class="lesson">Lesson 3 · What training is</div>
   <h2>Training means turning the knobs, automatically, millions of times</h2>
-  <p>You turned the knob by hand. Training does the same thing, but the computer does it, for every knob at once, over and over. Here's one round:</p>
   <div class="loop">
-    <div class="step"><span class="n">1 · Read</span><h3>Show a snippet</h3><p>Take 128 letters of Shakespeare.</p></div>
-    <div class="step"><span class="n">2 · Guess</span><h3>Predict</h3><p>Guess each next letter using today's knobs.</p></div>
-    <div class="step"><span class="n">3 · Check</span><h3>Score it</h3><p>Compare with the real letters. How wrong was it?</p></div>
-    <div class="step"><span class="n">4 · Nudge</span><h3>Turn knobs</h3><p>Turn every knob a tiny bit in the direction that would've been less wrong.</p></div>
+    <div class="step"><span class="n">1 · Read</span><h3>Show stories</h3><p>Take 32 pages × 256 word-pieces from <span class="mono">train.bin</span>.</p></div>
+    <div class="step"><span class="n">2 · Guess</span><h3>Predict</h3><p>Guess every next word-piece using today's 13.8M knobs.</p></div>
+    <div class="step"><span class="n">3 · Check</span><h3>Score it</h3><p>Measure how wrong it was (cross-entropy test score).</p></div>
+    <div class="step"><span class="n">4 · Nudge</span><h3>Turn knobs</h3><p>Backpropagation + AdamW nudge every knob slightly.</p></div>
   </div>
   <div class="toy">
     <h3>Try it: let the computer train the knob</h3>
@@ -128,63 +132,71 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
       <button id="reset" type="button" class="ghost">Scramble knob</button>
     </div>
     <p class="mono" id="trainlog" style="font-size:.9rem">Step 0 · knob -2.0 · wrongness 2.31</p>
-    <p style="font-size:.95rem">Each step checks how wrong the guess was and nudges the knob a little. Watch the dial above move and the green bar grow. This "how wrong" number is exactly the <b>test score</b> you see in Hedwig's training tab.</p>
   </div>
-  <div class="note"><b>The secret trick:</b> the math tells the computer which way to turn each knob without trying both ways. It's called <b>backpropagation</b>. It's why we can tune millions of knobs instead of just one.</div>
 </section>
 
 <section>
-  <div class="lesson">Lesson 4 · Hedwig's real report card</div>
-  <h2>Hedwig is doing this right now on your Mac</h2>
-  <p>These are Hedwig's actual test scores from the training run so far. Lower means smarter. A score of 4.2 means random guessing; about 1.5 means it has learned words, names and the shape of a play.</p>
-  <div class="toy chartbox"><svg id="chart" viewBox="0 0 640 260" width="100%" role="img" aria-label="Hedwig test score dropping from 4.39 to about 1.52 over 1250 steps"></svg></div>
+  <div class="lesson">Lesson 4 · Hedwig's real measured training curves</div>
+  <h2>Click each milestone to compare your real runs on the MacBook Air M4</h2>
+  <div class="toy chartbox">
+    <div class="row" id="runTabs">
+      <button type="button" class="ghost active" data-run="v2">v2: 13.8M Storyteller (8.501 → 2.080)</button>
+      <button type="button" class="ghost" data-run="p1">Phase 1: 512-BPE Overfitting on Shakespeare</button>
+      <button type="button" class="ghost" data-run="v1">v1: 4.8M Char-Level Shakespeare (4.388 → 1.481)</button>
+    </div>
+    <svg id="chart" viewBox="0 0 640 260" width="100%" role="img"></svg>
+    <p id="chartDesc" style="font-size:.95rem;color:var(--muted)"></p>
+  </div>
 </section>
 
 <section>
-  <div class="lesson">Lesson 5 · Where the 4.8 million knobs live</div>
-  <h2>Knobs come in groups, like Lego bricks</h2>
-  <p>Nobody places 4.8 million knobs one by one. You pick a few settings (how many layers, how big each layer is), and the knobs appear automatically. Here's Hedwig's brain, counted from its real settings:</p>
+  <div class="lesson">Lesson 5 · Modernizing the engine (Phase 1 &amp; 2)</div>
+  <h2>Where the 13,780,864 knobs live in your modern Transformer</h2>
+  <p>We upgraded Hedwig from 2018 GPT-2 parts to 2026 Llama/Qwen/nanochat parts one change at a time (<span class="mono">RoPE → RMSNorm → SwiGLU → bf16 → SDPA</span>):</p>
   <div class="tablewrap"><table>
-    <thead><tr><th>Part of the brain</th><th>What it does</th><th class="num">Knobs</th></tr></thead>
+    <thead><tr><th>Part of the brain</th><th>Modern upgrade &amp; what it does</th><th class="num">Knobs</th></tr></thead>
     <tbody>
-      <tr><td>Letter dictionary</td><td>Turns each of 65 letters into a list of 256 numbers</td><td class="num">16,640</td></tr>
-      <tr><td>Position tags</td><td>Remembers where each letter sits (1st, 2nd … 128th)</td><td class="num">32,768</td></tr>
-      <tr><td>6 thinking layers</td><td>"Attention" (which earlier letters matter?) + "thinking" (mix it all up). ~790k each.</td><td class="num">4,738,560</td></tr>
-      <tr><td>Final guesser</td><td>Turns the thoughts into a score for each of 65 letters</td><td class="num">17,217</td></tr>
-      <tr><th>Total</th><th></th><th class="num">≈ 4,805,185</th></tr>
+      <tr><td>Word-piece dictionary (<span class="mono">tok</span>)</td><td>Turns each of 4,096 BPE pieces into a 384-number thought vector</td><td class="num">1,572,864</td></tr>
+      <tr><td>Rotary Position (<span class="mono">RoPE</span>)</td><td>Rotates Query/Key vectors like clock hands for relative word distance (~1/3 faster convergence!)</td><td class="num">0 (pure math!)</td></tr>
+      <tr><td>6 modern layers (<span class="mono">Block × 6</span>)</td><td><span class="mono">RMSNorm</span> + 6-head <span class="mono">SDPA</span> attention + gated <span class="mono">SwiGLU</span> MLP (<span class="mono">384 → 1024</span>) in 16-bit <span class="mono">bf16</span></td><td class="num">10,630,656</td></tr>
+      <tr><td>Final norm &amp; guesser (<span class="mono">head</span>)</td><td>Scores all 4,096 word-pieces for the next-word prediction</td><td class="num">1,577,344</td></tr>
+      <tr><th>Total (<span class="mono">tinygpt.py</span>)</th><th></th><th class="num">13,780,864 (≈13.8M)</th></tr>
     </tbody>
   </table></div>
-  <div class="note"><b>The growth rule:</b> make each layer twice as wide and you get about <b>4×</b> the knobs. Stack twice as many layers and you get <b>2×</b>. That's how you go from Hedwig to GPT-2: same Lego bricks, bigger and more of them.</div>
 </section>
 
 <section>
-  <div class="lesson">Lesson 6 · From 1 knob to 100 million and beyond</div>
+  <div class="lesson">Lesson 6 · The 3 Stages of ChatGPT + 4-bit Quantization</div>
+  <h2>How Hedwig went from Autocomplete → Chat Manners → Taste → 7.9 MB</h2>
+  <div class="toy">
+    <div class="row" id="stageTabs">
+      <button type="button" class="ghost active" data-stage="s1">Stage 1: Pretrain (brain.pt)</button>
+      <button type="button" class="ghost" data-stage="s2">Stage 2: SFT Chat (brain_chat.pt)</button>
+      <button type="button" class="ghost" data-stage="s3">Stage 3: Anchored DPO (brain_dpo.pt)</button>
+      <button type="button" class="ghost" data-stage="q4">Phase 5: 4-bit Quantized (7.87 MB!)</button>
+    </div>
+    <div id="stageInfo" class="storybox"></div>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Brain File</th><th>Precision</th><th class="num">File Size</th><th class="num">Shrink</th><th class="num">Measured Score</th></tr></thead>
+    <tbody>
+      <tr><td>32-bit baseline</td><td><span class="mono">float32</span> (4 bytes/knob)</td><td class="num">55.52 MB</td><td class="num">1.00×</td><td class="num">1.7544</td></tr>
+      <tr><td><span class="mono">brain_chat.pt</span> / <span class="mono">brain_dpo.pt</span></td><td><span class="mono">bfloat16</span> (2 bytes/knob)</td><td class="num">27.78 MB</td><td class="num">2.00×</td><td class="num">1.7544 (91.7% DPO win)</td></tr>
+      <tr><td><span class="mono">brain_chat_int8.pt</span></td><td><span class="mono">int8</span> (-127..+127, 1 byte/knob)</td><td class="num">14.00 MB</td><td class="num">3.96×</td><td class="num">1.7547 (+0.0003)</td></tr>
+      <tr><td><span class="mono">brain_chat_int4.pt</span></td><td><span class="mono">int4</span> (-7..+7, 2 knobs/byte!)</td><td class="num">7.87 MB</td><td class="num">7.05×</td><td class="num">1.7718 (+0.0174)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <div class="lesson">Lesson 7 · From 1 knob to 100 billion</div>
   <h2>Same recipe, very different sizes</h2>
-  <p>These bars use a "times-ten" ruler: every extra chunk of bar means <b>10× more knobs</b>. On a normal ruler, Hedwig would be thinner than a hair next to Fable.</p>
   <div class="toy scale" id="scale"></div>
-  <div class="tablewrap"><table>
-    <thead><tr><th>Brain</th><th>Reads</th><th>Where it trains</th><th class="num">Time</th></tr></thead>
-    <tbody>
-      <tr><td>Hedwig</td><td>1 MB Shakespeare</td><td>Your MacBook</td><td class="num">~15 min</td></tr>
-      <tr><td>MiniMind</td><td>A few GB of text</td><td>Your MacBook</td><td class="num">~1–2 days</td></tr>
-      <tr><td>GPT-2 Small</td><td>~40 GB of web pages</td><td>Your MacBook (slowly)</td><td class="num">~1–2 months</td></tr>
-      <tr><td>GPT-2 XL</td><td>~40 GB of web pages</td><td>Needs bigger GPUs</td><td class="num">years on a laptop</td></tr>
-      <tr><td>Fable-class</td><td>A big slice of the internet</td><td>Data centres</td><td class="num">months, thousands of GPUs</td></tr>
-    </tbody>
-  </table></div>
-  <p style="color:var(--muted);font-size:.9rem">The Mac times are rough estimates. Big commercial models don't publish their size, so the last bar is a ballpark.</p>
-</section>
-
-<section>
-  <div class="lesson">Recap</div>
-  <h2>The whole thing in four lines</h2>
-  <p>1. A <b>knob</b> is one number inside the brain.<br>2. The brain's job is to <b>guess the next letter</b>.<br>3. <b>Training</b> = guess, check how wrong, nudge every knob a little, repeat thousands of times.<br>4. <b>More knobs + more reading = a smarter brain</b>, but it needs a bigger computer.</p>
 </section>
 </main>
 
 <script>
 (function(){
-  // one-knob model: logits for letters e,x,a as functions of knob w
   const letters=[{c:'e',f:w=>1.5*w,right:true},{c:'x',f:w=>-1.2*w,right:false},{c:'a',f:w=>0.3,right:false}];
   const knob=document.getElementById('knob'), kval=document.getElementById('kval'), bars=document.getElementById('bars'), dial=document.getElementById('dial'), log=document.getElementById('trainlog');
   let w=-2, steps=0;
@@ -203,24 +215,50 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
   document.getElementById('reset').onclick=()=>{w=-2-Math.random()*1.5;steps=0;render()};
   render();
 
-  // real loss chart
-  const pts=[[0,4.388],[250,1.964],[500,1.738],[750,1.632],[1000,1.569],[1250,1.523]];
-  const svg=document.getElementById('chart'), X=s=>60+s/3000*560, Y=v=>220-(v/4.5)*190;
-  let g='';
-  [0,1,2,3,4].forEach(v=>{g+=`<line x1="60" x2="620" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="50" y="${Y(v)+4}" text-anchor="end">${v}</text>`});
-  [0,1000,2000,3000].forEach(s=>{g+=`<text x="${X(s)}" y="242" text-anchor="middle">${s}</text>`});
-  g+=`<text x="340" y="258" text-anchor="middle">training step (goal: 3,000)</text>`;
-  g+=`<line x1="60" x2="620" y1="${Y(4.17)}" y2="${Y(4.17)}" stroke="var(--bad)" stroke-dasharray="4 4"/><text x="616" y="${Y(4.17)-6}" text-anchor="end" style="fill:var(--bad)">random guessing ≈ 4.17</text>`;
-  const d=pts.map((p,i)=>(i?'L':'M')+X(p[0])+' '+Y(p[1])).join(' ');
-  g+=`<path d="${d} L${X(1250)} 220 L60 220 Z" fill="var(--accent-soft)" stroke="none"/>`;
-  g+=`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
-  pts.forEach(p=>{g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="var(--accent)"/>`});
-  const last=pts[pts.length-1];
-  g+=`<text x="${X(last[0])+8}" y="${Y(last[1])-8}" style="fill:var(--ink);font-weight:600">${last[1]} (still learning)</text>`;
-  svg.innerHTML=g;
+  const RUNS={
+    v2:{maxY:9,rand:8.32,pts:[[0,8.501],[250,3.113],[500,2.741],[750,2.535],[1000,2.405],[1250,2.313],[1500,2.275],[1750,2.209],[2000,2.156],[2250,2.132],[2500,2.113],[2750,2.080],[3000,2.089]],
+        desc:"13.8M Storyteller on 14.1M tokens (TinyStories + 10 Project Gutenberg books, 4,096 BPE). Dropped smoothly from 8.501 to 2.080 (0.537 per letter!) with zero overfitting."},
+    p1:{maxY:7,rand:6.24,pts:[[0,6.388],[250,3.473],[500,3.102],[750,3.007],[1000,3.020],[1250,3.086],[1500,3.182],[1750,3.211],[2000,3.330],[2250,3.398],[2500,3.457],[2750,3.432],[3000,3.429]],
+        desc:"512-vocab BPE on Tiny Shakespeare (only 511k tokens). Hit 3.007 at step 750 (3.002 with RoPE+SwiGLU+bf16 at step 500), then climbed to 3.429—classic overfitting on a tiny dataset!"},
+    v1:{maxY:5,rand:4.17,pts:[[0,4.388],[250,1.964],[500,1.738],[750,1.632],[1000,1.569],[1250,1.523],[1500,1.522],[1750,1.495],[2000,1.485],[2250,1.488],[2500,1.502],[2750,1.492],[3000,1.481]],
+        desc:"Day 1 baseline: 4.8M character-level GPT on 1.1 MB Tiny Shakespeare (65 character tokens). Final score: 1.481."}
+  };
+  const svg=document.getElementById('chart'), descEl=document.getElementById('chartDesc');
+  function drawRun(key){
+    const r=RUNS[key], X=s=>60+s/3000*560, Y=v=>220-(v/r.maxY)*190;
+    let g='';
+    for(let v=0;v<=r.maxY;v+=2){g+=`<line x1="60" x2="620" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="50" y="${Y(v)+4}" text-anchor="end">${v}</text>`}
+    [0,1000,2000,3000].forEach(s=>{g+=`<text x="${X(s)}" y="242" text-anchor="middle">${s}</text>`});
+    g+=`<line x1="60" x2="620" y1="${Y(r.rand)}" y2="${Y(r.rand)}" stroke="var(--bad)" stroke-dasharray="4 4"/><text x="616" y="${Y(r.rand)-6}" text-anchor="end" style="fill:var(--bad)">random guessing ≈ ${r.rand}</text>`;
+    const d=r.pts.map((p,i)=>(i?'L':'M')+X(p[0])+' '+Y(p[1])).join(' ');
+    g+=`<path d="${d} L${X(3000)} 220 L60 220 Z" fill="var(--accent-soft)" stroke="none"/>`;
+    g+=`<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="3"/>`;
+    r.pts.forEach(p=>{g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="var(--accent)"/>`});
+    const best=r.pts.reduce((a,b)=>b[1]<a[1]?b:a);
+    g+=`<circle cx="${X(best[0])}" cy="${Y(best[1])}" r="6" fill="var(--amber)"/><text x="${Math.min(540,X(best[0])+8)}" y="${Y(best[1])-10}" style="fill:var(--amber);font-weight:700">🌟 best ${best[1]} (step ${best[0]})</text>`;
+    svg.innerHTML=g;
+    descEl.textContent=r.desc;
+  }
+  document.querySelectorAll('#runTabs button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#runTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); drawRun(b.dataset.run);
+  });
+  drawRun('v2');
 
-  // log-scale sizes
-  const sizes=[['1 knob','our toy above',1,0],['Hedwig','your Mac, today',4.8e6,1],['MiniMind','26 million',2.6e7,0],['GPT-1 / GPT-2 Small','117–124 million',1.24e8,0],['GPT-2 XL','1.5 billion',1.5e9,0],['Fable-class','hundreds of billions (est.)',3e11,0]];
+  const STAGES={
+    s1:`Stage 1 — Pretraining (tinygpt.py → brain.pt, 27.8 MB, score 2.080)\nWhat it does: Autocompletes story starters after reading 14.1M words of TinyStories + Project Gutenberg.\n\nPrompt: "Once upon a time, a little owl "\nHedwig: "Once upon a time, a little owl Zoey lived in a big tree. The little owl was very brave... Then, his friends saw him struggling. They asked him what was wrong... Zoey was so happy. He thanked his friends for the kindness and for helping him. From that day on, Zoey never had to worry again."`,
+    s2:`Stage 2 — Supervised Fine-Tuning / SFT (sft.py → brain_chat.pt, 27.8 MB, score 1.7544)\nWhat it adds: Trained on 13,852 (User request → Hedwig story) pairs with -100 prompt loss masking so it answers instructions and stops at story end.\n\n🧑 You: "Write a story: A little bird named Pip learns to fly high above the forest with his mom."\n🦉 Hedwig: "Once upon a time, there was a little bird who loved to fly high in the sky... The bird flew down and put his wings together. The little bird was happy that the little bird could fly high in the sky and back to its nest."`,
+    s3:`Stage 3 — Anchored DPO Preference Tuning (dpo.py → brain_dpo.pt, 27.8 MB, 91.7% preference win-rate)\nWhat it adds: Trained on 13,852 👍 chosen vs 👎 rejected (off-topic/repetitive) story pairs + a fluency anchor to prevent reward-hacking.\n\n🧑 You: "Tell me a story where a little girl named Lily finds a shiny key in the garden."\n🦉 Hedwig: "Once upon a time, there was a little girl named Lily. She was very happy because she found a shiny key... Lily looked around and found the key under a big leaf... From that day on, Lily and Lily played together and had lots of fun. The end."`,
+    q4:`Phase 5 — 4-bit Packed Quantization (quantize.py → brain_chat_int4.pt, 7.87 MB, 7.05× smaller!)\nWhat it adds: Squishes groups of 32 knobs into -7..+7 and packs TWO knobs per byte.\n\n🧑 You: "Tell me a story where a little girl named Lily finds a shiny key in the garden."\n🦉 Hedwig (7.9 MB 4-bit): "Once upon a time, there was a little girl named Lily. She loved to play outside and explore. One day, she found a shiny metal key in her yard... When they got home, Lily put the key in her pocket. Timmy was so happy and hugged her tight. He said, 'Thank you, Lily!' They went back home... dreaming of their next adventure."`
+  };
+  const stageInfo=document.getElementById('stageInfo');
+  document.querySelectorAll('#stageTabs button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#stageTabs button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); stageInfo.textContent=STAGES[b.dataset.stage];
+  });
+  stageInfo.textContent=STAGES.s1;
+
+  const sizes=[['1 knob','our toy above',1,0],['Hedwig v1 (char)','4.8 million · 18 MB',4.8e6,0],['Hedwig v3 (yours!)','13.8 million · 7.9 MB at 4-bit',1.38e7,1],['Hedwig Cloud (Dec 2026)','~124 million · GPT-2 Small scale',1.24e8,0],['GPT-2 XL','1.5 billion',1.5e9,0],['Frontier (GPT-4/5)','hundreds of billions (est.)',3e11,0]];
   const max=Math.log10(3e11);
   document.getElementById('scale').innerHTML=sizes.map(s=>`<div class="srow"><div class="slabel">${s[0]}<small>${s[1]}</small></div><div class="sbar ${s[3]?'us':''}" style="width:${Math.max(1,Math.log10(s[2])/max*100)}%"></div></div>`).join('');
 })();

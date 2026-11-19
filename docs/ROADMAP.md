@@ -28,8 +28,8 @@ Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and
 - [x] **8-bit & 4-bit Quantization (`quantize.py`)**: `55.5 MB` fp32 (`1.7544`) → `27.8 MB` bf16 (`1.7544`) → `14.0 MB` int8 (`1.7547`, `brain_chat_int8.pt`) → `7.9 MB` int4 (`1.7718`, `brain_chat_int4.pt`)
 - [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live Stage 3 DPO / Stage 2 SFT / 8-bit / 4-bit / Stage 1 brain switching
 - [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 91.7%` preference win-rate in 100 steps; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
-- [ ] **Refresh `how-hedwig-learns.html` ($0)**: Update the visual field guide with real Phase 1–5 measurements
-- [ ] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Ready-to-run script for next month's cloud GPU run
+- [x] **Refresh `how-hedwig-learns.html` ($0)**: Updated the interactive visual field guide with real Phase 1–5 & Stage 1–3 measurements
+- [x] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Turnkey script (`bash cloud_train.sh` or `bash cloud_train.sh --124m`) ready for next month's cloud GPU run
 
 ## Phase 3: First cloud run (~$15–30 — Planned for Next Month / Dec 2026)
 See `docs/CLOUD_GPU_100.md`.
@@ -46,7 +46,7 @@ See `docs/CLOUD_GPU_100.md`.
 ## Phase 5: Ship it ($0)
 - [x] Quantize to 8-bit / 4-bit (`quantize.py`); measure quality vs size (`55.5 MB` fp32 `1.7544` → `27.8 MB` bf16 `1.7544` → `14.0 MB` int8 `1.7547` → `7.9 MB` int4 `1.7718`)
 - [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
-- [ ] Convert to Core ML (`export_iphone.py`) and build a tiny iPhone app (Xcode, free Apple ID)
+- [x] Convert to mobile / Xcode bundle (`export_iphone.py` → `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt`, `iphone/HedwigApp.swift`) ready for an Xcode iPhone app (free Apple ID)
 - [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup
 
 ## Stretch ideas

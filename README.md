@@ -34,6 +34,8 @@ python3.12 -m venv .venv
 .venv/bin/python tinygpt.py train                                    # Stage 1 pretraining
 .venv/bin/python sft.py train                                        # Stage 2 SFT ("chat manners")
 .venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
+.venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
+bash cloud_train.sh                                                  # 1-command end-to-end pipeline (or `bash cloud_train.sh --124m` on cloud GPU)
 ```
 
 ## Files
@@ -45,6 +47,8 @@ python3.12 -m venv .venv
 | `dpo.py` | Stage 3: Direct Preference Optimization (👍 chosen vs 👎 rejected + fluency anchor) |
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
 | `app.py` | Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) |
+| `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
+| `cloud_train.sh` | 1-command Cloud GPU training script (`--124m` scales to GPT-2 Small size for Dec 2026) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |

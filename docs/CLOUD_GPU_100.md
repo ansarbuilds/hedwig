@@ -39,16 +39,12 @@ Tip: debug everything on the Mac or a cheap GPU first. Only rent 8×H100 when th
 
 ## Useful commands
 ```bash
-# on the rented machine (planned for Dec 2026 — everything is already tested on Mac!)
+# on the rented machine (planned for Dec 2026 — 1 command runs the entire pipeline!)
 git clone https://github.com/ansarbuilds/hedwig.git && cd hedwig
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-nvidia-smi                     # check the GPU
-.venv/bin/python prepare_data.py
-.venv/bin/python tinygpt.py train
-.venv/bin/python sft.py train
-.venv/bin/python quantize.py
+bash cloud_train.sh           # fast 13.8M smoke test (~10 min)
+bash cloud_train.sh --124m    # scale up to ~115M GPT-2 Small size on 500 MB stories
 
-# from the Mac: copy the trained brains back
+# from the Mac: copy the trained brains back BEFORE terminating the pod!
 scp -P <port> root@<host>:~/hedwig/brain*.pt ./
 ```
 The repo is private, so cloning on a rented machine needs a GitHub personal access token or SSH deploy key. Use a token limited to this repo and revoke it afterwards.
