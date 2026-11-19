@@ -45,8 +45,10 @@ bash cloud_train.sh                                                  # 1-command
 | `tinygpt.py` | Stage 1: ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), pretraining & autocomplete |
 | `sft.py` | Stage 2: Supervised Fine-Tuning (prompt loss masking) & interactive story chat (`talk` / `chat`) |
 | `dpo.py` | Stage 3: Direct Preference Optimization (👍 chosen vs 👎 rejected + fluency anchor) |
+| `moe.py` | Stretch: Mixture-of-Experts Hedwig (`26.2M` total / `11.6M` active knobs, 8 experts top-2) |
+| `distill.py` | Stretch: Teacher → Student soft-label distillation (`13.8M` Teacher → `3.4M` `6.8 MB` Baby Hedwig) |
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
-| `app.py` | Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) |
+| `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 7 brains, word streaming, & 🔬 Live Brain X-Ray |
 | `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
 | `cloud_train.sh` | 1-command Cloud GPU training script (`--124m` scales to GPT-2 Small size for Dec 2026) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |

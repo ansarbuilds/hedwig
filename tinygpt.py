@@ -111,7 +111,7 @@ class Block(nn.Module):
         x = x + self.attn(self.ln1(x), kv_cache=kv_cache, start_pos=start_pos)
         return x + self.mlp(self.ln2(x))
 
-def sample_next(logits, recent_ids=None, temperature=0.75, top_k=40, rep_penalty=1.15):
+def sample_next(logits, recent_ids=None, temperature=0.75, top_k=40, rep_penalty=1.15, return_top5=False):
     """Pick the next word-piece using repetition penalty (no loops) + top-k filtering (no weird typos)."""
     logits = logits[:, -1, :].float()
     if recent_ids and rep_penalty > 1.0:
@@ -121,7 +121,13 @@ def sample_next(logits, recent_ids=None, temperature=0.75, top_k=40, rep_penalty
     if top_k and top_k < logits.size(-1):
         v, _ = torch.topk(logits, top_k)
         logits[logits < v[:, [-1]]] = float("-inf")
-    return torch.multinomial(F.softmax(logits, dim=-1), 1)
+    probs = F.softmax(logits, dim=-1)
+    nxt = torch.multinomial(probs, 1)
+    if not return_top5:
+        return nxt
+    top_p, top_i = torch.topk(probs[0], 5)
+    top5 = [(decode([ int(i) ]), round(float(p) * 100.0, 1)) for p, i in zip(top_p, top_i)]
+    return nxt, top5
 
 class TinyGPT(nn.Module):
     def __init__(self):

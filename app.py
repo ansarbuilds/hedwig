@@ -1,38 +1,46 @@
 """
-Phase 5 for Hedwig: Offline Mac Chat UI with Live Word-by-Word Streaming & KV Cache.
-
-Starts a local web server on http://127.0.0.1:8000 where you can chat with Hedwig,
-watch stories stream out word-by-word at ~90 tokens/sec, and switch live between
-Stage 3 DPO (27.8 MB), Stage 2 SFT (27.8 MB), 8-bit (14.0 MB), and 4-bit (7.9 MB) brains!
+Phase 5 + Stretch Goals for Hedwig: Offline Mac Chat UI with:
+  - Live Word-by-Word Streaming & KV Cache (~90–180 tok/s)
+  - 7 Switchable Brains: Stage 3 DPO, 26.2M Mixture-of-Experts (8 Experts Top-2),
+    3.1M Distilled Baby Hedwig, Stage 2 SFT, 8-bit (14 MB), 4-bit (7.9 MB), Stage 1 Base
+  - Interactive "🔬 Brain X-Ray": click ANY word in Hedwig's story to inspect the Top-5
+    candidate words (with % probability bars) and which 2 MoE Experts woke up for that word!
 
 Run:   .venv/bin/python app.py
 """
 import json, os, sys, time, webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import torch
-import tinygpt, sft, quantize
+import tinygpt, sft, quantize, moe, distill
 
 PORT = 8000
 MODELS = {}
 
 BRAIN_SPECS = {
-    "dpo_16":  ("Stage 3 DPO Chat (27.8 MB)", "brain_dpo.pt",       "chat", 16),
-    "chat_16": ("Stage 2 SFT Chat (27.8 MB)", "brain_chat.pt",      "chat", 16),
-    "chat_8":  ("8-bit Quantized (14.0 MB)",  "brain_chat_int8.pt", "chat", 8),
-    "chat_4":  ("4-bit Quantized (7.9 MB)",   "brain_chat_int4.pt", "chat", 4),
-    "base_16": ("Stage 1 Base (27.8 MB)",     "brain.pt",           "base", 16),
+    "dpo_16":  ("Stage 3 DPO Chat (13.8M · 27.8 MB)",              "brain_dpo.pt",       "chat", 16, "dense"),
+    "moe_16":  ("MoE 8-Experts Top-2 (26.2M total / 11.6M active)","brain_moe.pt",       "chat", 16, "moe"),
+    "baby_16": ("🐣 Baby Hedwig Distilled (3.1M · 6.2 MB)",        "brain_baby.pt",      "chat", 16, "baby"),
+    "chat_16": ("Stage 2 SFT Chat (13.8M · 27.8 MB)",              "brain_chat.pt",      "chat", 16, "dense"),
+    "chat_8":  ("8-bit Quantized Chat (13.8M · 14.0 MB)",          "brain_chat_int8.pt", "chat", 8,  "dense"),
+    "chat_4":  ("4-bit Quantized Chat (13.8M · 7.9 MB)",           "brain_chat_int4.pt", "chat", 4,  "dense"),
+    "base_16": ("Stage 1 Autocomplete Base (13.8M · 27.8 MB)",     "brain.pt",           "base", 16, "dense"),
 }
 
 def get_model(key):
-    """Lazy-load and cache the requested brain on the M4 GPU."""
+    """Lazy-load and cache the requested brain (dense, MoE, distilled Baby, or quantized) on M4 GPU."""
     if key not in BRAIN_SPECS:
         key = "dpo_16"
+    label, path, mode, bits, arch = BRAIN_SPECS[key]
+    if not os.path.exists(path):
+        key = "dpo_16" if os.path.exists("brain_dpo.pt") else "chat_16"
+        label, path, mode, bits, arch = BRAIN_SPECS[key]
     if key not in MODELS:
-        label, path, mode, bits = BRAIN_SPECS[key]
-        if not os.path.exists(path):
-            path = "brain_chat.pt" if os.path.exists("brain_chat.pt") else "brain.pt"
-            bits = 16
-        m = tinygpt.TinyGPT().to(tinygpt.device)
+        if arch == "moe":
+            m = moe.MoEGPT().to(tinygpt.device)
+        elif arch == "baby":
+            m = distill.BabyGPT().to(tinygpt.device)
+        else:
+            m = tinygpt.TinyGPT().to(tinygpt.device)
         sd = torch.load(path, map_location="cpu")
         if bits in (4, 8):
             sd = quantize.dequantize(sd)
@@ -45,7 +53,7 @@ HTML = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>🦉 Hedwig — Offline Mac Storyteller</title>
+<title>🦉 Hedwig — Offline Mac Storyteller & Brain X-Ray</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{
@@ -66,27 +74,37 @@ button:disabled{opacity:.5;cursor:wait}
 .chipbar{padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line);background:rgba(23,28,54,.5)}
 .chip{font-size:.82rem;padding:6px 11px;border-radius:99px;background:var(--surface2);color:var(--ink);border:1px solid var(--line);cursor:pointer}
 .chip:hover{border-color:var(--accent)}
-#chat{flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:16px;max-width:820px;width:100%;margin:0 auto}
-.msg{padding:14px 18px;border-radius:14px;line-height:1.6;white-space:pre-wrap;max-width:88%}
+#chat{flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:16px;max-width:860px;width:100%;margin:0 auto}
+.msg{padding:14px 18px;border-radius:14px;line-height:1.65;white-space:pre-wrap;max-width:92%}
 .msg.user{align-self:flex-end;background:var(--accent);color:#0e1226;font-weight:600}
 .msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line)}
 .meta{margin-top:8px;font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+.tok{border-radius:4px;padding:1px 0;cursor:pointer;transition:background .15s}
+.tok:hover,.tok.sel{background:rgba(139,155,255,.28);outline:1px solid var(--accent)}
+.xray{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:.84rem;display:none}
+.xbar{display:grid;grid-template-columns:95px 1fr 48px;gap:8px;align-items:center;font-family:var(--mono);margin:4px 0}
+.xtrack{height:12px;background:var(--surface2);border-radius:6px;overflow:hidden}
+.xfill{height:100%;background:var(--accent)}
+.xfill.win{background:var(--good)}
+.expbadge{display:inline-block;font-family:var(--mono);font-size:.76rem;padding:3px 8px;border-radius:6px;background:var(--surface2);color:var(--amber);border:1px solid var(--line);margin-right:6px}
 footer{padding:14px 20px;background:var(--surface);border-top:1px solid var(--line)}
-form{max-width:820px;margin:0 auto;display:flex;gap:10px}
+form{max-width:860px;margin:0 auto;display:flex;gap:10px}
 form input{flex:1;padding:12px 14px;font-size:1rem}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">🦉 Hedwig <span class="badge">13.8M · KV Cache (~90 tok/s) · Offline M4</span></div>
+  <div class="brand">🦉 Hedwig <span class="badge">7 Brains · KV Cache · 🔬 Live Brain X-Ray</span></div>
   <div class="controls">
     <label>Brain:
       <select id="model">
-        <option value="dpo_16">Stage 3 DPO Chat (27.8 MB · 91.7% preference win-rate)</option>
-        <option value="chat_16">Stage 2 SFT Chat (27.8 MB · score 1.754)</option>
-        <option value="chat_8">8-bit Quantized Chat (14.0 MB · 4× smaller)</option>
-        <option value="chat_4">4-bit Quantized Chat (7.9 MB · 7× smaller)</option>
-        <option value="base_16">Stage 1 Autocomplete Base (27.8 MB)</option>
+        <option value="dpo_16">Stage 3 DPO Chat (13.8M · 27.8 MB · 91.7% win-rate)</option>
+        <option value="moe_16">Mixture-of-Experts (26.2M / 11.6M active · 8 Experts Top-2)</option>
+        <option value="baby_16">🐣 Baby Hedwig Distilled (3.1M knobs · 6.2 MB · 4.4× smaller!)</option>
+        <option value="chat_16">Stage 2 SFT Chat (13.8M · 27.8 MB · score 1.754)</option>
+        <option value="chat_8">8-bit Quantized Chat (13.8M · 14.0 MB · 4× smaller)</option>
+        <option value="chat_4">4-bit Quantized Chat (13.8M · 7.9 MB · 7× smaller)</option>
+        <option value="base_16">Stage 1 Autocomplete Base (13.8M · 27.8 MB)</option>
       </select>
     </label>
     <label>Creativity: <span id="tval" style="font-family:var(--mono)">0.75</span>
@@ -101,7 +119,7 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
   <span class="chip" onclick="useChip('Once upon a time, a little owl ')">📖 Autocomplete: Once upon a time...</span>
 </div>
 <div id="chat">
-  <div class="msg bot">Hello! I'm <b>Hedwig</b>, running completely offline on your MacBook Air M4 with <b>KV Cache (~90 tokens/sec)</b>, <b>Top-k=40 filtering</b>, and <b>Repetition Penalty (1.15)</b>. Pick a brain above and watch me stream stories word-by-word!</div>
+  <div class="msg bot">Hello! I'm <b>Hedwig</b>, running 100% offline on your MacBook Air M4.<br>• Switch between all <b>7 brains</b> above (including <b>26.2M Mixture-of-Experts</b> and <b>3.1M Distilled Baby Hedwig</b>).<br>• <b>🔬 Brain X-Ray:</b> After I write a story, <b>click any word</b> to inspect the Top-5 words I was debating between (and which 2 MoE Experts woke up for that word)!</div>
 </div>
 <footer>
   <form onsubmit="send(event)">
@@ -114,6 +132,7 @@ const chat = document.getElementById('chat');
 const input = document.getElementById('prompt');
 const btn = document.getElementById('btn');
 function useChip(text){ input.value = text; input.focus(); }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function addMsg(cls, text){
   const d = document.createElement('div');
   d.className = 'msg ' + cls;
@@ -121,11 +140,47 @@ function addMsg(cls, text){
   body.textContent = text;
   const meta = document.createElement('div');
   meta.className = 'meta';
+  const xray = document.createElement('div');
+  xray.className = 'xray';
   d.appendChild(body);
   d.appendChild(meta);
+  d.appendChild(xray);
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
-  return {box: d, body, meta};
+  return {box: d, body, meta, xray};
+}
+function showXray(bot, steps, idx){
+  const s = steps[idx];
+  if(!s) return;
+  bot.body.querySelectorAll('.tok').forEach((el,i)=>el.classList.toggle('sel', i===idx));
+  let html = `<div style="margin-bottom:6px"><b>🔬 Brain X-Ray · Word #${idx+1}:</b> picked <span class="expbadge" style="color:var(--good)">${esc(JSON.stringify(s.piece))}</span></div>`;
+  if(s.experts && s.experts.length){
+    html += `<div style="margin-bottom:8px"><b>🚦 MoE Traffic Cop (Top-2 of 8 Experts awake):</b> ` +
+      s.experts.map(e=>`<span class="expbadge">Expert #${e[0]} (${e[1]}%)</span>`).join('') +
+      `<span style="color:var(--muted);font-size:.78rem">(6 other experts slept)</span></div>`;
+  }
+  html += `<div style="color:var(--muted);margin-bottom:4px">Top 5 candidate word-pieces inside the brain:</div>`;
+  for(const [cand, pct] of s.top5){
+    const win = cand === s.piece;
+    html += `<div class="xbar"><span>${esc(JSON.stringify(cand))}</span><div class="xtrack"><div class="xfill ${win?'win':''}" style="width:${Math.min(100,pct)}%"></div></div><span>${pct.toFixed(1)}%</span></div>`;
+  }
+  bot.xray.innerHTML = html;
+  bot.xray.style.display = 'block';
+}
+function attachInteractiveTokens(bot, finalText, steps){
+  if(!steps || !steps.length) return;
+  bot.body.innerHTML = '';
+  let built = '';
+  steps.forEach((s, idx)=>{
+    if(built.length >= finalText.length) return;
+    const span = document.createElement('span');
+    span.className = 'tok';
+    span.textContent = s.piece;
+    span.title = 'Click for 🔬 Brain X-Ray';
+    span.onclick = ()=>showXray(bot, steps, idx);
+    bot.body.appendChild(span);
+    built += s.piece;
+  });
 }
 async function send(e){
   e.preventDefault();
@@ -135,6 +190,7 @@ async function send(e){
   addMsg('user', p);
   btn.disabled = true;
   const bot = addMsg('bot', '🦉 ...');
+  let lastEvt = null;
   try {
     const res = await fetch('/api/stream', {
       method: 'POST',
@@ -157,10 +213,15 @@ async function send(e){
       for(const line of lines){
         if(!line.trim()) continue;
         const evt = JSON.parse(line);
+        lastEvt = evt;
         bot.body.textContent = evt.text;
-        bot.meta.textContent = `${evt.label} (${evt.mb.toFixed(1)} MB) · ${evt.tokens} tokens · ${evt.tps.toFixed(0)} tok/s · ${evt.seconds.toFixed(2)}s`;
+        bot.meta.textContent = `${evt.label} (${evt.mb.toFixed(1)} MB) · ${evt.tokens} tokens · ${evt.tps.toFixed(0)} tok/s · ${evt.seconds.toFixed(2)}s · 🔬 Click any word for Brain X-Ray`;
         chat.scrollTop = chat.scrollHeight;
       }
+    }
+    if(lastEvt && lastEvt.xray){
+      attachInteractiveTokens(bot, lastEvt.text, lastEvt.xray);
+      showXray(bot, lastEvt.xray, Math.min(3, lastEvt.xray.length - 1));
     }
   } catch(err) {
     bot.body.textContent = 'Error: ' + err;
@@ -201,8 +262,9 @@ class Handler(BaseHTTPRequestHandler):
         n_tok = 0
         if mode == "base":
             idx = torch.tensor([tinygpt.encode(prompt)], device=tinygpt.device)
-            kv_cache = [[None, None] for _ in range(tinygpt.n_layer)]
+            kv_cache = [[None, None] for _ in range(len(model.blocks))]
             T0 = idx.size(1)
+            xray = []
             for step in range(180):
                 pos = T0 + step - 1
                 with torch.no_grad():
@@ -212,26 +274,33 @@ class Handler(BaseHTTPRequestHandler):
                         logits, _ = model(idx[:, -1:], kv_cache=kv_cache, start_pos=pos)
                     else:
                         logits, _ = model(idx[:, -tinygpt.block_size:])
-                nxt = tinygpt.sample_next(logits, idx[0].tolist(), temperature=temp)
+                nxt, top5 = tinygpt.sample_next(logits, idx[0].tolist(), temperature=temp, return_top5=True)
+                xray.append({"piece": tinygpt.decode([int(nxt[0, 0])]), "top5": top5})
                 idx = torch.cat([idx, nxt], dim=1)
                 n_tok += 1
                 dt = max(1e-4, time.time() - t0)
                 text = tinygpt.decode(idx[0].tolist())
-                pkt = json.dumps({"text": text, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt}) + "\n"
+                pkt = json.dumps({"text": text, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt, "xray": xray if step == 179 else None}) + "\n"
                 self.wfile.write(pkt.encode("utf-8"))
                 self.wfile.flush()
         else:
-            for partial in sft.reply_stream(model, prompt, max_new_tokens=220, temperature=temp):
+            last_text, last_xray = "", []
+            for partial, xray in sft.reply_stream(model, prompt, max_new_tokens=220, temperature=temp, with_xray=True):
                 n_tok += 1
+                last_text, last_xray = partial, xray
                 dt = max(1e-4, time.time() - t0)
                 pkt = json.dumps({"text": partial, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt}) + "\n"
                 self.wfile.write(pkt.encode("utf-8"))
                 self.wfile.flush()
+            dt = max(1e-4, time.time() - t0)
+            final_pkt = json.dumps({"text": last_text, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt, "xray": last_xray}) + "\n"
+            self.wfile.write(final_pkt.encode("utf-8"))
+            self.wfile.flush()
 
 if __name__ == "__main__":
     get_model("dpo_16")
     url = f"http://127.0.0.1:{PORT}"
-    print(f"🦉 Hedwig Mac Chat UI (Streaming + KV Cache) running at {url} (Ctrl+C to stop)", flush=True)
+    print(f"🦉 Hedwig Mac Chat UI (7 Brains + 🔬 Brain X-Ray) running at {url} (Ctrl+C to stop)", flush=True)
     if "--no-open" not in sys.argv:
         webbrowser.open(url)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

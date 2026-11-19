@@ -172,12 +172,14 @@ def train():
     print(f"Done! Best {chat_brain} score: {best_val:.3f}", flush=True)
 
 @torch.no_grad()
-def reply_stream(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, rep_penalty=1.15):
+def reply_stream(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, rep_penalty=1.15, with_xray=False):
     """Yield Hedwig's story response word-by-word using KV cache + top-k + repetition penalty."""
     prefix = f"User: {prompt.strip()}\nHedwig: "
     idx = torch.tensor([tinygpt.encode(prefix)], device=tinygpt.device)
     start_len = idx.size(1)
-    kv_cache = [[None, None] for _ in range(tinygpt.n_layer)]
+    n_layers = len(model.blocks)
+    kv_cache = [[None, None] for _ in range(n_layers)]
+    xray_steps = []
     for step in range(max_new_tokens):
         pos = start_len + step - 1
         if step == 0:
@@ -186,14 +188,20 @@ def reply_stream(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, 
             logits, _ = model(idx[:, -1:], kv_cache=kv_cache, start_pos=pos)
         else:
             logits, _ = model(idx[:, -tinygpt.block_size:])
-        nxt = tinygpt.sample_next(logits, idx[0, start_len:].tolist(), temperature, top_k, rep_penalty)
+        nxt, top5 = tinygpt.sample_next(logits, idx[0, start_len:].tolist(), temperature, top_k, rep_penalty, return_top5=True)
+        chosen_tok = tinygpt.decode([int(nxt[0, 0])])
+        step_info = {"piece": chosen_tok, "top5": top5}
+        if hasattr(model, "last_experts") and model.last_experts:
+            step_info["experts"] = model.last_experts
+        xray_steps.append(step_info)
         idx = torch.cat([idx, nxt], dim=1)
         text = tinygpt.decode(idx[0, start_len:].tolist())
         for stop in ("\n\n", "Summary:", "Features:", "Random sentence:", "User:"):
             if stop in text:
-                yield text.split(stop)[0].strip()
+                clean = text.split(stop)[0].strip()
+                yield (clean, xray_steps) if with_xray else clean
                 return
-        yield text.strip()
+        yield (text.strip(), xray_steps) if with_xray else text.strip()
 
 @torch.no_grad()
 def reply(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, rep_penalty=1.15):

@@ -216,3 +216,16 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - Gently divides the logit score of tokens used in the last 64 steps by `1.15` (stopping `"the dragon... a big dragon... give the dragon"` loops) and restricts sampling to the 40 most sensible next words (cutting off 0.01% nonsense typos).
 - **Live Word-by-Word Streaming (`app.py` at `http://127.0.0.1:8000`):**
   - Streams NDJSON chunks from `sft.reply_stream()` over `ReadableStream` so stories type out word-by-word on screen at `~89 tok/s` with a live tokens/sec counter.
+
+## 23. Stretch Goals Complete — Mixture-of-Experts (`moe.py`), Teacher → Student Distillation (`distill.py`), & Live Brain X-Ray (`app.py`) ✅
+
+- **Mixture-of-Experts (`moe.py` → `brain_moe.pt`, 8 Experts, Top-2 Routing):**
+  - Replaced each layer's dense 704-wide `SwiGLU` MLP with **8 specialist 352-wide `ExpertSwiGLU` modules** and a linear **Router (`Traffic Cop`)** + load-balancing auxiliary loss (`n_experts * sum(usage * mean_prob)`).
+  - **26.2M total knobs, only 11.6M active per word** (6 of 8 experts sleep on every token!).
+  - **Upcycling (`2.461 → 1.966` in 300 steps):** Initialized from `brain_dpo.pt` and sliced the trained MLP across the 8 experts. Real routing on `"Once upon a time, there was a little boy named Timmy"`:
+    `Once→E5/E0 · upon→E3/E4 · a→E5/E4 · time→E4/E0 · ,→E7/E1 · there→E5/E4 · was→E3/E1 · a→E5/E4 · little→E4/E1 · boy→E4/E3 · named→E6/E7 · Timmy→E1/E0`
+- **Teacher → Student Knowledge Distillation (`distill.py` → `brain_baby.pt`, 3.4M knobs, `6.8 MB`):**
+  - Built a 4-layer, 4-head, 192-width **"🐣 Baby Hedwig" Student (`3.4M` knobs — `4.1×` smaller than the `13.8M` Teacher!)**.
+  - Trained with **50% Teacher soft-label KL divergence (`T = 2.0`) + 50% ground-truth cross-entropy** over 600 steps (`7.602 → 3.128 → 2.722 → 2.607 → 2.521` in `350 s`). Writes complete multi-paragraph stories from a `6.8 MB` 16-bit file (`~1.8 MB` at 4-bit!).
+- **Live "🔬 Brain X-Ray" in `app.py` (`http://127.0.0.1:8000`):**
+  - Clicking any word in Hedwig's story displays a `%` probability bar chart of the **Top 5 candidate word-pieces** Hedwig was choosing between at that step, plus the **Top-2 active MoE Experts** when using the MoE brain.

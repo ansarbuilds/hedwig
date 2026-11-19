@@ -50,10 +50,11 @@ See `docs/CLOUD_GPU_100.md`.
 - [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup
 
 ## Stretch ideas
-- Mixture-of-Experts Hedwig (8 experts, top-2)
-- Layer-by-layer loading from SSD (AirLLM / "LLM in a Flash" style)
-- Distillation with teacher soft-labels
-- A low-resource-language Hedwig
+- [x] **Mixture-of-Experts Hedwig (8 experts, top-2)** (`moe.py` → `26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966` in 300 steps)
+- [x] **Distillation with teacher soft-labels** (`distill.py` → `3.4M` "🐣 Baby Hedwig" Student distilled from `13.8M` Teacher via `T=2.0` KL divergence, loss `7.602 → 2.521` in 600 steps, `brain_baby.pt` = `6.8 MB`)
+- [x] **Interactive "🔬 Brain X-Ray" in Mac Chat UI** (`app.py` — click any generated word to inspect Top-5 candidate probabilities and Top-2 active MoE experts)
+- [ ] Layer-by-layer loading from SSD (AirLLM / "LLM in a Flash" style)
+- [ ] A low-resource-language Hedwig
 
 ## Reading list
 - Karpathy, *Let's build GPT: from scratch, in code, spelled out* (YouTube) + `nanoGPT`

@@ -16,4 +16,7 @@ brain_chat.pt.tmp
 ckpt_dpo.pt
 ckpt_dpo.pt.tmp
 brain_dpo.pt.tmp
+brain_moe.pt
+brain_moe.pt.tmp
+brain_baby.pt.tmp
 iphone/
