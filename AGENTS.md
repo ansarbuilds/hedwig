@@ -11,8 +11,8 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `dpo.py`: Stage 3 Direct Preference Optimization (`13,852` chosen 👍 vs rejected 👎 pairs with fluency anchor; `0% → 91.7%` win-rate in 100 steps). `.venv/bin/python dpo.py train` / `.venv/bin/python dpo.py talk "Write a short story about dragon and castle."`
 - `moe.py`: Mixture-of-Experts Hedwig (`26.2M` total / `11.6M` active params, 8 experts top-2, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
 - `distill.py`: Teacher → Student soft-label knowledge distillation (`13.8M` Teacher → `3.4M` Baby Hedwig `brain_baby.pt` at `6.8 MB`, loss `7.602 → 2.521`).
-- `quantize.py`: From-scratch 8-bit (`int8`, `14.0 MB`, loss `1.7547`) and packed 4-bit (`int4`, `7.9 MB`, loss `1.7718`) quantizer (`brain_chat_int8.pt`, `brain_chat_int4.pt`).
-- `app.py`: Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) with 7 brains, KV-cached word streaming (`89 tok/s`), and clickable **🔬 Brain X-Ray** (Top-5 token probabilities + Top-2 active MoE experts).
+- `quantize.py`: From-scratch 8-bit and packed 4-bit. Stage 2 chat: `14.0 MB` loss `1.7547`, `7.9 MB` loss `1.7718`. Stage 3 taste: `brain_dpo_int8.pt` loss `1.7639`, `brain_dpo_int4.pt` loss `1.7827` (16-bit taste loss `1.7637`).
+- `app.py`: Zero-dependency offline Mac Chat UI (`http://127.0.0.1:8000`) with 9 brains (including Stage 3 at 16-bit, 8-bit, and 4-bit), KV-cached word streaming, and clickable **🔬 Brain X-Ray** (Top-5 token probabilities + Top-2 active MoE experts).
 - `prepare_data.py`: Downloads TinyStories (`52.4 MB` train + `10.5 MB` val) + 10 public-domain Project Gutenberg novels (`~3.0 MB`), trains 4,096-vocab BPE, and writes `data/train.bin` (`14.1M` tokens) and `data/val.bin` (`2.7M` tokens).
 - `tokenizer.py` & `tokenizer.json`: fast word-chunked from-scratch BPE tokenizer (4,096 vocab: 256 bytes + 3,840 merges, `3.87` chars/token)
 - `brain.pt`, `brain_chat.pt`, `brain_dpo.pt`, `brain_chat_int8.pt`, `brain_chat_int4.pt`: 13.8M Stage 1 (`27.8 MB`), Stage 2 SFT (`27.8 MB`), Stage 3 DPO (`27.8 MB`), 8-bit (`14.0 MB`), and 4-bit (`7.9 MB`) weights
@@ -20,7 +20,7 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `logs/DEVLOG.md`: automatic daily commit log via `.github/workflows/devlog.yml`
 - `docs/LEARNINGS.md`: concepts + measured results; `docs/ROADMAP.md`: next steps; `docs/CLOUD_GPU_100.md`: $100 cloud plan
 - `how-hedwig-learns.html`: interactive visual explainer updated with all Phase 1–5 & Stage 1–3 measured curves
-- `cloud_train.sh`: 1-command cloud GPU script. `bash cloud_train.sh --dry-run` rehearses 2 steps in `dry_run/` (passed in 92 s; real brains untouched). On a GPU: `bash cloud_train.sh` (13.8M smoke) or `bash cloud_train.sh --124m` (91,286,272 knobs). Restarts resume; `--fresh` wipes saves.
+- `cloud_train.sh`: 1-command cloud GPU script. `bash cloud_train.sh --dry-run` rehearses 2 steps in `dry_run/`. On a GPU: `bash cloud_train.sh` (13.8M smoke) or `bash cloud_train.sh --124m` (91,286,272 knobs, 20,000 steps). Restarts resume; `--fresh` wipes saves. Private clone steps are in `docs/CLOUD_GPU_100.md`.
 - `export_iphone.py`: exports `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt` (`7.9 MB`), and `iphone/HedwigApp.swift` for Xcode
 - `ssd_runner.py`: "LLM in a Flash" layer streaming. Splits `brain_dpo.pt` into `ssd_layers/` and loads one block at a time. Measured on M4: weights in memory `52.9 MB → 18.8 MB`, speed `108 → 33 tok/s`, peak process RAM `403 → 372 MB` (stories identical). `.venv/bin/python ssd_runner.py`
 

@@ -24,7 +24,7 @@ Rough prices: RTX 4090/5090 ~$0.30–0.70/hr · A100 ~$1–2/hr · H100 ~$2–4/
 | Step | Machine | Time | Rough cost | Goal |
 |---|---|---|---|---|
 | 1. Smoke test | 1× cheap GPU (4090) | 1 hr | ~$1 | Learn SSH, clone, install, run `tinygpt.py` |
-| 2. Scale Hedwig up | 1× H100 | 1–2 hr | ~$5 | 124M BPE Hedwig on TinyStories |
+| 2. Scale Hedwig up | 1× H100 | a few hours; stop early if you want | ~$5–15 | 91.3M knobs, 20,000 steps, one read of 500 MB |
 | 3. nanochat speedrun | 8× H100 | ~2–3 hr | ~$40–75 | Full pretrain → SFT → chat pipeline |
 | Reserve | — | — | ~$20 | Mistakes, re-runs, forgotten-to-stop insurance |
 
@@ -45,10 +45,22 @@ bash cloud_train.sh --dry-run
 # on the rented machine
 git clone https://github.com/ansarbuilds/hedwig.git && cd hedwig
 bash cloud_train.sh           # 13.8M smoke test
-bash cloud_train.sh --124m    # 91.3M knobs: 12 layers, 768 wide, 500 MB of stories, 6000 pretrain steps
+bash cloud_train.sh --124m    # 91.3M knobs, 20,000 steps (one read of the 500 MB pile)
 bash cloud_train.sh --fresh   # delete checkpoints and prepared data, then start over
 
 # from the Mac: copy the trained brains back BEFORE terminating the pod!
 scp -P <port> root@<host>:~/hedwig/brain*.pt ./
 ```
-The repo is private, so cloning on a rented machine needs a GitHub personal access token or SSH deploy key. Use a token limited to this repo and revoke it afterwards.
+## The door key (only you can click this)
+
+The project is a private bookshelf. The rented computer is a stranger, so GitHub will not hand it the books until you lend it a temporary library card.
+
+1. On your Mac, open GitHub → Settings → Developer settings → Fine-grained personal access tokens → Generate new token.
+2. Name it `hedwig-cloud`. Set the expiration to 7 days.
+3. Repository access: **Only select repositories** → `hedwig`.
+4. Permissions: **Contents: Read-only**. Nothing else.
+5. Generate, and copy the token once. It looks like a long password. Do not put it in a file in this project, and do not commit it.
+6. On the rented machine, run `git clone https://github.com/ansarbuilds/hedwig.git`. When it asks for a username, type `x-access-token`. When it asks for a password, paste the token. The password prompt does not show what you paste. That is normal.
+7. After the brains are copied home and the machine is terminated, open the token page again and **delete** `hedwig-cloud`.
+
+Your Mac is already logged in as `kmsmohamedansar`, so you do not need this card on the laptop. It is only for the rented computer.

@@ -1,7 +1,7 @@
 """
 Phase 5 + Stretch Goals for Hedwig: Offline Mac Chat UI with:
   - Live Word-by-Word Streaming & KV Cache (~90–180 tok/s)
-  - 7 Switchable Brains: Stage 3 DPO, 26.2M Mixture-of-Experts (8 Experts Top-2),
+  - Switchable Brains: Stage 3 DPO at 16-bit / 8-bit / 4-bit, 26.2M Mixture-of-Experts (8 Experts Top-2),
     3.1M Distilled Baby Hedwig, Stage 2 SFT, 8-bit (14 MB), 4-bit (7.9 MB), Stage 1 Base
   - Interactive "🔬 Brain X-Ray": click ANY word in Hedwig's story to inspect the Top-5
     candidate words (with % probability bars) and which 2 MoE Experts woke up for that word!
@@ -18,6 +18,8 @@ MODELS = {}
 
 BRAIN_SPECS = {
     "dpo_16":  ("Stage 3 DPO Chat (13.8M · 27.8 MB)",              "brain_dpo.pt",       "chat", 16, "dense"),
+    "dpo_8":   ("Stage 3 DPO 8-bit (13.8M · ~14 MB)",             "brain_dpo_int8.pt",  "chat", 8,  "dense"),
+    "dpo_4":   ("Stage 3 DPO 4-bit (13.8M · ~8 MB)",              "brain_dpo_int4.pt",  "chat", 4,  "dense"),
     "moe_16":  ("MoE 8-Experts Top-2 (26.2M total / 11.6M active)","brain_moe.pt",       "chat", 16, "moe"),
     "baby_16": ("🐣 Baby Hedwig Distilled (3.1M · 6.2 MB)",        "brain_baby.pt",      "chat", 16, "baby"),
     "chat_16": ("Stage 2 SFT Chat (13.8M · 27.8 MB)",              "brain_chat.pt",      "chat", 16, "dense"),
@@ -94,11 +96,13 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
 </head>
 <body>
 <header>
-  <div class="brand">🦉 Hedwig <span class="badge">7 Brains · KV Cache · 🔬 Live Brain X-Ray</span></div>
+  <div class="brand">🦉 Hedwig <span class="badge">9 Brains · KV Cache · 🔬 Live Brain X-Ray</span></div>
   <div class="controls">
     <label>Brain:
       <select id="model">
         <option value="dpo_16">Stage 3 DPO Chat (13.8M · 27.8 MB · 91.7% win-rate)</option>
+        <option value="dpo_8">Stage 3 DPO 8-bit (13.8M · 14 MB)</option>
+        <option value="dpo_4">Stage 3 DPO 4-bit (13.8M · 8 MB)</option>
         <option value="moe_16">Mixture-of-Experts (26.2M / 11.6M active · 8 Experts Top-2)</option>
         <option value="baby_16">🐣 Baby Hedwig Distilled (3.1M knobs · 6.2 MB · 4.4× smaller!)</option>
         <option value="chat_16">Stage 2 SFT Chat (13.8M · 27.8 MB · score 1.754)</option>
@@ -119,7 +123,7 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
   <span class="chip" onclick="useChip('Once upon a time, a little owl ')">📖 Autocomplete: Once upon a time...</span>
 </div>
 <div id="chat">
-  <div class="msg bot">Hello! I'm <b>Hedwig</b>, running 100% offline on your MacBook Air M4.<br>• Switch between all <b>7 brains</b> above (including <b>26.2M Mixture-of-Experts</b> and <b>3.1M Distilled Baby Hedwig</b>).<br>• <b>🔬 Brain X-Ray:</b> After I write a story, <b>click any word</b> to inspect the Top-5 words I was debating between (and which 2 MoE Experts woke up for that word)!</div>
+  <div class="msg bot">Hello! I'm <b>Hedwig</b>, running 100% offline on your MacBook Air M4.<br>• Switch between the brains above (including <b>Stage 3 at 16-bit, 8-bit, and 4-bit</b>, <b>26.2M Mixture-of-Experts</b>, and <b>3.1M Distilled Baby Hedwig</b>).<br>• <b>🔬 Brain X-Ray:</b> After I write a story, <b>click any word</b> to inspect the Top-5 words I was debating between (and which 2 MoE Experts woke up for that word)!</div>
 </div>
 <footer>
   <form onsubmit="send(event)">
@@ -300,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     get_model("dpo_16")
     url = f"http://127.0.0.1:{PORT}"
-    print(f"🦉 Hedwig Mac Chat UI (7 Brains + 🔬 Brain X-Ray) running at {url} (Ctrl+C to stop)", flush=True)
+    print(f"🦉 Hedwig Mac Chat UI + 🔬 Brain X-Ray running at {url} (Ctrl+C to stop)", flush=True)
     if "--no-open" not in sys.argv:
         webbrowser.open(url)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

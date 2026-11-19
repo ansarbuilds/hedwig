@@ -17,7 +17,7 @@
 # Usage:
 #   bash cloud_train.sh --dry-run   # Mac rehearsal: 2 steps in ./dry_run, real brains untouched
 #   bash cloud_train.sh             # rented GPU: 13.8M smoke test
-#   bash cloud_train.sh --124m      # rented GPU: 12 layers, 768 wide, 500 MB of stories (~91.3M knobs)
+#   bash cloud_train.sh --124m      # rented GPU: 91.3M knobs, 20,000 steps, one read of 500 MB
 #   bash cloud_train.sh --fresh     # throw away checkpoints and prepared data, then start over
 # ==============================================================================
 set -euo pipefail
@@ -85,13 +85,13 @@ check_124m_on_copy() {
   apply_patch "$tmp/tinygpt.py"      "n_embd     = 384" "n_embd     = 768"
   apply_patch "$tmp/tinygpt.py"      "n_head     = 6"   "n_head     = 12"
   apply_patch "$tmp/tinygpt.py"      "n_layer    = 6"   "n_layer    = 12"
-  apply_patch "$tmp/tinygpt.py"      "steps      = 3000" "steps      = 6000"
+  apply_patch "$tmp/tinygpt.py"      "steps      = 3000" "steps      = 20000"
   apply_patch "$tmp/prepare_data.py" "tinystories_train_mb = 50" "tinystories_train_mb = 500"
   (cd "$tmp" && "$PY" - <<'PY'
 import tinygpt
 n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
 print(f"Scale-up check: n_embd={tinygpt.n_embd} n_head={tinygpt.n_head} n_layer={tinygpt.n_layer} steps={tinygpt.steps} knobs={n:,}")
-assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 6000)
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 20000)
 assert n == 91_286_272, n
 PY
   )
@@ -130,17 +130,20 @@ if [[ "$DRY" -eq 1 ]]; then
 fi
 
 if [[ "$SCALE" -eq 1 ]]; then
-  echo "Scaling config to 12 layers, 768 wide, 6,000 pretrain steps, 500 MB of TinyStories."
+  echo "Scaling config to 12 layers, 768 wide, 20,000 pretrain steps, 500 MB of TinyStories."
+  echo "Picture a student with 91 million switches. The Mac brain had 14 million switches and read about 2 word-pieces per switch (3,000 steps). 20,000 steps gives this student the same 2 pieces per switch: about 164 million pieces, one pass through the 500 MB pile."
+  echo "A bookmark is saved every 250 steps. If the bill climbs past what you want to spend, stop the script. The best brain so far stays on disk. Run the same command again later and it continues from the bookmark."
+  echo "The chat lessons stay short (750 manners steps, 150 taste steps) because they use the same 13,852 story requests as the Mac."
   apply_patch tinygpt.py      "n_embd     = 384" "n_embd     = 768"
   apply_patch tinygpt.py      "n_head     = 6"   "n_head     = 12"
   apply_patch tinygpt.py      "n_layer    = 6"   "n_layer    = 12"
-  apply_patch tinygpt.py      "steps      = 3000" "steps      = 6000"
+  apply_patch tinygpt.py      "steps      = 3000" "steps      = 20000"
   apply_patch prepare_data.py "tinystories_train_mb = 50" "tinystories_train_mb = 500"
   "$PY" - <<'PY'
 import tinygpt
 n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
 print(f"Scale-up is in effect: {n:,} knobs")
-assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 6000)
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 20000)
 assert n == 91_286_272, n
 PY
 fi

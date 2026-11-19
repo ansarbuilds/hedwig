@@ -17,6 +17,8 @@ import tinygpt, sft
 
 INT8_PATH = "brain_chat_int8.pt"
 INT4_PATH = "brain_chat_int4.pt"
+DPO_INT8_PATH = "brain_dpo_int8.pt"
+DPO_INT4_PATH = "brain_dpo_int4.pt"
 GROUP_SIZE = 32  # for 4-bit: share one scale factor across every 32 knobs
 
 def quantize_int8(state_dict):
@@ -78,30 +80,23 @@ def evaluate_sft_loss(model, va_x, va_y, n_batches=30):
             total += model(x, y)[1].item()
     return total / n_batches
 
-def main():
-    src = "brain_chat.pt" if os.path.exists("brain_chat.pt") else "brain.pt"
-    print(f"Loading {src} ({os.path.getsize(src)/1e6:.2f} MB on disk)...", flush=True)
+def shrink_one(src, int8_path, int4_path, va_x, va_y, model, prompt):
+    """Squeeze one brain to 8-bit and 4-bit, then grade the story score of each size."""
+    print(f"\nLoading {src} ({os.path.getsize(src)/1e6:.2f} MB on disk)...", flush=True)
     sd_bf16 = torch.load(src, map_location="cpu")
     sd_fp32 = {k: (v.float() if v.is_floating_point() else v) for k, v in sd_bf16.items()}
-
-    print("Quantizing to 8-bit (int8) and 4-bit (packed int4)...", flush=True)
-    q8 = quantize_int8(sd_fp32)
-    q4 = quantize_int4(sd_fp32)
-    torch.save(q8, INT8_PATH)
-    torch.save(q4, INT4_PATH)
-
-    _, _, va_x, va_y = sft.load_sft_data()
-    model = tinygpt.TinyGPT().to(tinygpt.device)
-    prompt = "Tell me a story where a little girl named Lily finds a shiny key in the garden."
+    print(f"Quantizing {src} to 8-bit (int8) and 4-bit (packed int4)...", flush=True)
+    torch.save(quantize_int8(sd_fp32), int8_path)
+    torch.save(quantize_int4(sd_fp32), int4_path)
 
     rows = [
         ("32-bit (float32)", sd_fp32, sum(v.numel() * v.element_size() for v in sd_fp32.values()) / 1e6),
         ("16-bit (bfloat16)", sd_bf16, os.path.getsize(src) / 1e6),
-        (" 8-bit (int8)",     dequantize(torch.load(INT8_PATH, map_location="cpu")), os.path.getsize(INT8_PATH) / 1e6),
-        (" 4-bit (int4)",     dequantize(torch.load(INT4_PATH, map_location="cpu")), os.path.getsize(INT4_PATH) / 1e6),
+        (" 8-bit (int8)",     dequantize(torch.load(int8_path, map_location="cpu")), os.path.getsize(int8_path) / 1e6),
+        (" 4-bit (int4)",     dequantize(torch.load(int4_path, map_location="cpu")), os.path.getsize(int4_path) / 1e6),
     ]
-
-    print(f"\n{'Precision':20s} | {'Size (MB)':10s} | {'Shrink':8s} | {'Test Score (lower=smarter)':26s}")
+    print(f"\n{src}")
+    print(f"{'Precision':20s} | {'Size (MB)':10s} | {'Shrink':8s} | {'Test Score (lower=smarter)':26s}")
     print("-" * 74)
     base_mb = rows[0][2]
     samples = {}
@@ -111,10 +106,27 @@ def main():
         print(f"{label:20s} | {mb:7.2f} MB | {base_mb/mb:6.2f}x  | {loss:.4f}", flush=True)
         torch.manual_seed(7)
         samples[label.strip()] = sft.reply(model, prompt)
-
     for label in ("16-bit (bfloat16)", "8-bit (int8)", "4-bit (int4)"):
-        print(f"\n--- Sample from {label} ---")
+        print(f"\n--- {src} sample from {label} ---")
         print(samples[label])
+
+def main():
+    # The manners brain (Stage 2) and the taste brain (Stage 3) are squeezed separately.
+    # Stage 3 is the one that learned which story is better, so the small phone file should be that one.
+    jobs = []
+    if os.path.exists("brain_chat.pt"):
+        jobs.append(("brain_chat.pt", INT8_PATH, INT4_PATH))
+    elif os.path.exists("brain.pt"):
+        jobs.append(("brain.pt", INT8_PATH, INT4_PATH))
+    if os.path.exists("brain_dpo.pt"):
+        jobs.append(("brain_dpo.pt", DPO_INT8_PATH, DPO_INT4_PATH))
+    if not jobs:
+        raise SystemExit("No brain file found. Train first: .venv/bin/python sft.py train")
+    _, _, va_x, va_y = sft.load_sft_data()
+    model = tinygpt.TinyGPT().to(tinygpt.device)
+    prompt = "Tell me a story where a little girl named Lily finds a shiny key in the garden."
+    for src, int8_path, int4_path in jobs:
+        shrink_one(src, int8_path, int4_path, va_x, va_y, model, prompt)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "talk":

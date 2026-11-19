@@ -55,7 +55,7 @@ bash cloud_train.sh                                                  # rented GP
 | `moe.py` | Stretch: Mixture-of-Experts Hedwig (`26.2M` total / `11.6M` active knobs, 8 experts top-2) |
 | `distill.py` | Stretch: Teacher → Student soft-label distillation (`13.8M` Teacher → `3.4M` `6.8 MB` Baby Hedwig) |
 | `quantize.py` | From-scratch 8-bit (`int8`) and 4-bit (packed `int4`) quantizer + quality benchmark |
-| `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 7 brains, word streaming, & 🔬 Live Brain X-Ray |
+| `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 9 brains, word streaming, & 🔬 Live Brain X-Ray |
 | `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
 | `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
 | `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` is the 91.3M scale-up; restarts resume |
@@ -67,6 +67,8 @@ bash cloud_train.sh                                                  # rented GP
 | `brain_dpo.pt` | Stage 3 DPO preference-tuned weights (`27.8 MB` in `bfloat16`, `91.7%` preference win-rate) |
 | `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.7547`) |
 | `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.7718`) |
+| `brain_dpo_int8.pt` | 8-bit Stage 3 taste brain (`14.0 MB`, response loss `1.7639`) |
+| `brain_dpo_int4.pt` | 4-bit Stage 3 taste brain (`7.9 MB`, response loss `1.7827`) |
 | `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5 & Stage 1–3 measured curves |
@@ -85,4 +87,4 @@ bash cloud_train.sh                                                  # rented GP
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
   2. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).
-  3. Run `bash cloud_train.sh --124m` for the 91.3M brain (12 layers, 768 wide, 500 MB of stories), copy weights back to the Mac, and quantize. See [docs/ROADMAP.md](docs/ROADMAP.md).
+  3. Run `bash cloud_train.sh --124m` for the 91.3M brain: 20,000 steps, one read of 500 MB (about 2 word-pieces per knob, same as the Mac brain). Copy the files home. See [docs/ROADMAP.md](docs/ROADMAP.md) and the door-key steps in [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).

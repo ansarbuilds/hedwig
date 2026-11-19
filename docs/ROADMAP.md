@@ -25,7 +25,7 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 ## Phase 2.5: Full ChatGPT pipeline & shipping on Mac (Air, $0 — Done ✅ / In Progress)
 Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and proved the entire post-training & shipping stack locally on the 13.8M model first:
 - [x] **Stage 2 — SFT ("Chat Manners", `sft.py`)**: `13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking (`brain_chat.pt`, `27.8 MB` `bf16`, response loss `2.077 → 1.7544`, interactive `sft.py chat`)
-- [x] **8-bit & 4-bit Quantization (`quantize.py`)**: `55.5 MB` fp32 (`1.7544`) → `27.8 MB` bf16 (`1.7544`) → `14.0 MB` int8 (`1.7547`, `brain_chat_int8.pt`) → `7.9 MB` int4 (`1.7718`, `brain_chat_int4.pt`)
+- [x] **8-bit & 4-bit Quantization (`quantize.py`)**: manners brain `1.7544 → 1.7547 (8-bit) → 1.7718 (4-bit)`; taste brain `1.7637 → 1.7639 (8-bit) → 1.7827 (4-bit)` (`brain_dpo_int8.pt`, `brain_dpo_int4.pt`)
 - [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live Stage 3 DPO / Stage 2 SFT / 8-bit / 4-bit / Stage 1 brain switching
 - [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 91.7%` preference win-rate in 100 steps; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
 - [x] **Refresh `how-hedwig-learns.html` ($0)**: Updated the interactive visual field guide with real Phase 1–5 & Stage 1–3 measurements
@@ -40,12 +40,12 @@ See `docs/CLOUD_GPU_100.md`.
 
 ## Phase 4: Hedwig-chat storyteller scale-up (~$50–70 — Planned for Next Month / Dec 2026)
 - [x] Local 13.8M prototype complete (`prepare_data.py` → `tinygpt.py` → `sft.py` → `quantize.py` → `app.py`)
-- [ ] Scale up on cloud GPU: run `prepare_data.py` on full `1.9 GB` TinyStories + Gutenberg (optionally FineWeb-Edu) and train a ~124M–560M brain
+- [ ] Scale up on cloud GPU: `bash cloud_train.sh --124m` trains the 91.3M brain for 20,000 steps on 500 MB (same ~2 tokens per knob as the Mac brain). Full 1.9 GB and larger brains stay later.
 - [ ] Optionally expand SFT / DPO data with an **open** teacher model (Qwen / Mistral, Apache-2.0)
 - [ ] Download cloud weights and compare against the local 13.8M model in `app.py`
 
 ## Phase 5: Ship it ($0)
-- [x] Quantize to 8-bit / 4-bit (`quantize.py`); measure quality vs size (`55.5 MB` fp32 `1.7544` → `27.8 MB` bf16 `1.7544` → `14.0 MB` int8 `1.7547` → `7.9 MB` int4 `1.7718`)
+- [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.7544 → 1.7547 → 1.7718`, taste `1.7637 → 1.7639 → 1.7827`
 - [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
 - [x] Convert to mobile / Xcode bundle (`export_iphone.py` → `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt`, `iphone/HedwigApp.swift`) ready for an Xcode iPhone app (free Apple ID)
 - [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup

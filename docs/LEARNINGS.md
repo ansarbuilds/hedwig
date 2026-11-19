@@ -263,4 +263,17 @@ What changed in the script, and what the rehearsal measured:
 
 The 2-step sandbox run finished in **92 s** on the M4 and wrote all five brain files plus the three checkpoints. Scores are meaningless at 2 steps (pretrain val `8.499 → 7.556`). The point of the run was that every stage started, saved, and resumed.
 
-Still open before paying for a GPU: a GitHub token so the private repo can be cloned, and whether `6,000` steps (`~49M` tokens) is enough to judge a `91.3M` model. The `~180 MB` 16-bit file must come home with `scp`, not git. Quantize still scores `brain_chat.pt`; `brain_dpo.pt` is saved beside it.
+## 26. Before renting: study length, door key, and a small copy of the taste brain ✅
+
+**How long the big brain studies.** `6,000` steps would let a `91.3M` knob brain read about `49M` word-pieces, roughly one third of the `500 MB` pile. The Mac brain (`13.8M` knobs) read `24.6M` pieces in `3,000` steps, about **2 pieces per knob**, and reached val loss `2.080`. `--124m` is now **`20,000` steps**: `20,000 × 32 × 256 = 163.8M` pieces, again about **2 per knob**, one pass through the pile. Chat lessons stay at `750` SFT steps and `150` DPO steps, because those reuse the same `13,852` requests. A bookmark is still written every `250` steps, so stopping the machine early keeps the best brain.
+
+**The door key.** This repo is private. The Mac is already logged in to GitHub. The rented computer needs a 7-day, read-only token for this repo only. The clicks are in `docs/CLOUD_GPU_100.md`. The token is not stored in the project.
+
+**Shrinking the taste brain (`quantize.py`, 81 s on M4).** Same story-score test as Stage 2. Lower is a closer match to the real TinyStories replies.
+
+| Brain | 16-bit (27.8 MB) | 8-bit (14.0 MB) | 4-bit (7.87 MB) |
+|---|---:|---:|---:|
+| Stage 2 manners `brain_chat.pt` | 1.7544 | 1.7547 | 1.7718 |
+| Stage 3 taste `brain_dpo.pt` | 1.7637 | 1.7639 | 1.7827 |
+
+8-bit barely moves the score. 4-bit costs about `0.02`, the same gap the manners brain already had. The Mac chat menu can now pick the taste brain at 16-bit, 8-bit, or 4-bit. The cloud script's last step squeezes both brains, because it calls this same `quantize.py`.
