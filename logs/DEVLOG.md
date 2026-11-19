@@ -31,3 +31,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **01:13** Add Mixture-of-Experts (moe.py, 26.2M/11.6M), Distilled Baby Hedwig (distill.py, 3.4M/6.8MB), and Live Brain X-Ray in app.py (`cb4bab4`)
 - **01:21** Update README and AGENTS with full v1-v4 progress, optional Mac experiments, and Dec 2026 Cloud GPU plan (`4a06f07`)
   > Completed all core zsh Mac milestones (Pretrain -> SFT -> DPO -> Quantize -> MoE -> Distill -> KV-Cache Streaming UI + Brain X-Ray + iPhone export + cloud_train.sh). Next: optional SSD/MLX/multilingual experiments on Mac, then Dec 2026 cloud GPU scale-up (--124m + nanochat).
+- **01:29** Add layer-by-layer SSD loading so we can measure RAM against speed. (`e6173fb`)
+  > Streaming one thinking layer at a time cuts weights in memory from 53 MB to 19 MB and slows generation from 108 to 33 tok/s, with the same story.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
