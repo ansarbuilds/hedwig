@@ -49,3 +49,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **13:04** Teach the English brain a taller stack of TinyStories. (`bd45f1c`)
   > Two thousand more steps on 200 MB of stories, with the same dictionary and the same test pages, move the val score from 2.080 to 2.010 and the chat score from 1.754 to 1.723.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **16:59** Save the English reader after a partial pass over the full story shelf. (`af4a36e`)
+  > The quiz score reached 1.795 before the long run was stopped, and more_english.py can resume a full TinyStories read from a bookmark.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
