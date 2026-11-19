@@ -43,3 +43,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **11:29** Measure the same 13.8M brain in Apple MLX and in PyTorch. (`5265411`)
   > A practice step drops from 596 ms to 99 ms in 16-bit MLX, story writing is a little faster, and the most-likely story matches piece for piece.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **11:42** Add a real Core ML iPhone brain and a small French Hedwig. (`10cb900`)
+  > The phone model matches PyTorch on 30 greedy pieces, the Swift dictionary matches Python, and a 2.56M French brain trained on public-domain Dumas and Verne drops its val score from 7.78 to 3.54.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
