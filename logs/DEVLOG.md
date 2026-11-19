@@ -46,3 +46,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **11:42** Add a real Core ML iPhone brain and a small French Hedwig. (`10cb900`)
   > The phone model matches PyTorch on 30 greedy pieces, the Swift dictionary matches Python, and a 2.56M French brain trained on public-domain Dumas and Verne drops its val score from 7.78 to 3.54.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **13:04** Teach the English brain a taller stack of TinyStories. (`bd45f1c`)
+  > Two thousand more steps on 200 MB of stories, with the same dictionary and the same test pages, move the val score from 2.080 to 2.010 and the chat score from 1.754 to 1.723.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
