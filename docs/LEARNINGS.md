@@ -277,3 +277,18 @@ The 2-step sandbox run finished in **92 s** on the M4 and wrote all five brain f
 | Stage 3 taste `brain_dpo.pt` | 1.7637 | 1.7639 | 1.7827 |
 
 8-bit barely moves the score. 4-bit costs about `0.02`, the same gap the manners brain already had. The Mac chat menu can now pick the taste brain at 16-bit, 8-bit, or 4-bit. The cloud script's last step squeezes both brains, because it calls this same `quantize.py`.
+
+## 27. Apple MLX vs PyTorch on the same 13.8M brain (`mlx_bench.py`) ✅
+
+Picture two calculators and the same homework. PyTorch is the calculator Hedwig already uses. MLX is Apple's calculator, built for the M4. The brain is the same size (`13,780,864` knobs: 6 layers, 384 wide, 6 heads). Both read a batch of `32` snippets, `256` pieces long.
+
+The practice step in MLX is compiled into one GPU recipe. PyTorch uses the same 16-bit math the real training uses (`bf16` autocast) with 32-bit knobs. Five timed steps after two warmups, on a batch kept in memory so the clock is the brain and not the disk:
+
+| | PyTorch on `mps` | MLX 32-bit | MLX 16-bit |
+|---|---:|---:|---:|
+| One practice step | `596 ms` | `135 ms` (`4.4×` faster) | `99 ms` (`6.0×` faster) |
+| New word-pieces / sec (most likely piece, KV cache) | `635` | `708` | `832` |
+
+The loss numbers during the practice timing (`5.14` vs `8.45`) are not a quality score. Each toolbox starts from its own random knobs. The fair check copies `brain.pt` into MLX. The biggest logit gap on the prompt was `0.012`, and the next `80` most-likely pieces matched exactly, including `"The owl was walking through the forest when he saw a big, scary wolf."`
+
+Writing is only a little faster because each new word is a tiny job, and Python asks for the next word one at a time. Practice is where MLX wins: that step updates every knob, and `596 ms → 99 ms` is the whole class finishing the worksheet six times quicker. The chat app's earlier `~108 tok/s` also rolls dice (top-k, repetition penalty) and streams words to the browser. This test skips the dice and only times the thinking. Run it again with `.venv/bin/python mlx_bench.py`.

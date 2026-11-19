@@ -41,6 +41,7 @@ python3.12 -m venv .venv
 .venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
 .venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
 .venv/bin/python ssd_runner.py                                       # one layer at a time from SSD vs all-in-RAM
+.venv/bin/python mlx_bench.py                                    # MLX vs PyTorch speed on the same 13.8M brain
 bash cloud_train.sh --dry-run                                        # 2-step rehearsal in dry_run/ (does not touch real brains)
 bash cloud_train.sh                                                  # rented GPU: full pipeline (or `--124m` for the 91.3M brain)
 ```
@@ -58,6 +59,7 @@ bash cloud_train.sh                                                  # rented GP
 | `app.py` | Offline Mac Chat UI (`http://127.0.0.1:8000`) with 9 brains, word streaming, & 🔬 Live Brain X-Ray |
 | `export_iphone.py` | Exports TorchScript mobile bundle + 4-bit weights + SwiftUI Xcode template (`iphone/`) |
 | `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
+| `mlx_bench.py` | Times the same 13.8M brain in Apple MLX and in PyTorch |
 | `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` is the 91.3M scale-up; restarts resume |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
@@ -82,7 +84,7 @@ bash cloud_train.sh                                                  # rented GP
 - **All core $0 MacBook Air milestones are complete ✅!**
 - **Optional $0 Mac experiments (anytime before Dec 2026):**
   1. ~~**Layer-by-layer SSD streaming (`ssd_runner.py`):**~~ Done. `52.9 MB → 18.8 MB` of weights in memory, `108 → 33 tok/s`, same story. Process RAM only `403 → 372 MB`.
-  2. **Apple MLX vs PyTorch MPS benchmark:** Compare Apple's native Silicon framework against PyTorch `mps` on the 13.8M Transformer.
+  2. ~~**Apple MLX vs PyTorch MPS benchmark (`mlx_bench.py`):**~~ Done. Practice step `596 ms → 99 ms` (16-bit MLX). Writing `635 → 832` word-pieces/sec. The greedy story matches.
   3. **Second-language / low-resource Hedwig:** Train Hedwig on a non-English language using the same UTF-8 byte-level BPE tokenizer.
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).

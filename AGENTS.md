@@ -23,6 +23,7 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - `cloud_train.sh`: 1-command cloud GPU script. `bash cloud_train.sh --dry-run` rehearses 2 steps in `dry_run/`. On a GPU: `bash cloud_train.sh` (13.8M smoke) or `bash cloud_train.sh --124m` (91,286,272 knobs, 20,000 steps). Restarts resume; `--fresh` wipes saves. Private clone steps are in `docs/CLOUD_GPU_100.md`.
 - `export_iphone.py`: exports `iphone/hedwig_mobile.pt`, `iphone/hedwig_int4.pt` (`7.9 MB`), and `iphone/HedwigApp.swift` for Xcode
 - `ssd_runner.py`: "LLM in a Flash" layer streaming. Splits `brain_dpo.pt` into `ssd_layers/` and loads one block at a time. Measured on M4: weights in memory `52.9 MB → 18.8 MB`, speed `108 → 33 tok/s`, peak process RAM `403 → 372 MB` (stories identical). `.venv/bin/python ssd_runner.py`
+- `mlx_bench.py`: same 13.8M brain in Apple MLX vs PyTorch `mps`. Practice step `596 → 99 ms` (16-bit), generation `635 → 832 tok/s`, greedy story identical. `.venv/bin/python mlx_bench.py`
 
 ## Environment
 - Local: macOS, Apple M4, 16 GB RAM, Python 3.12 venv in `.venv` (not committed). PyTorch uses `mps`.
@@ -41,7 +42,7 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 ### All core $0 MacBook Air milestones are complete ✅!
 ### Optional $0 Mac experiments (anytime before Dec 2026):
 1. ~~Layer-by-layer SSD loading~~ ✅ (`ssd_runner.py`: `52.9 → 18.8 MB` weights in RAM, `108 → 33 tok/s`).
-2. Apple MLX vs PyTorch MPS speed benchmark on the 13.8M Transformer.
+2. ~~Apple MLX vs PyTorch MPS~~ ✅ (`mlx_bench.py`: practice `596 → 99 ms`, generation `635 → 832 tok/s`, same story).
 3. Low-resource / second-language Hedwig using the same UTF-8 BPE tokenizer.
 
 ### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):

@@ -14,7 +14,7 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 - [x] **Write a BPE tokenizer from scratch** (`tokenizer.py`). Followed Karpathy / `minbpe` style and trained `tokenizer.json` on Tiny Shakespeare (`vocab_size=512`; can scale to ~4k–8k later).
 - [x] **Switch Hedwig to the BPE tokenizer** and compare loss and samples vs the character version (best val `3.007` at step 750, overfit to `3.429` by 3000 — Tiny Shakespeare is only `511k` BPE tokens!)
 - [x] **Modernize the architecture** one change at a time, measuring each: ~~RoPE~~ ✅ → ~~RMSNorm~~ ✅ → ~~SwiGLU~~ ✅ → ~~bf16 autocast~~ ✅ → ~~`F.scaled_dot_product_attention`~~ ✅
-- [ ] (Optional) Port to **MLX** and compare speed vs PyTorch MPS
+- [x] (Optional) Port to **MLX** and compare speed vs PyTorch MPS (`mlx_bench.py`: practice step `596 ms → 99 ms` at 16-bit, generation `635 → 832 tok/s`, greedy story identical)
 
 ## Phase 2: Pick the data (Air, $0)
 - [x] Download **TinyStories** from Hugging Face (`roneneldan/TinyStories` — `52.4 MB` train + `10.5 MB` val)
