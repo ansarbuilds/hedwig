@@ -16,3 +16,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 
 ## 2026-11-18
 - **20:25** Add best-val brain.pt saving and RoPE (3.013 at step 500 vs 3.007 at step 750) (`b20f173`)
+- **21:15** Complete Phase 1: add RMSNorm, SwiGLU, bf16 autocast, and SDPA (`14cbff2`)
