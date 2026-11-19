@@ -37,3 +37,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **11:08** Make the cloud script resumable and prove it with a tiny local rehearsal. (`1e37ee9`)
   > A crash no longer deletes checkpoints, the scale-up switch must really yield 91.3M knobs, and --dry-run finishes every stage in a sandbox without touching the real brains.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **11:21** Give the bigger cloud brain a full read, and pack the taste brain small. (`f40c010`)
+  > 20,000 steps matches the Mac brain's two word-pieces per knob, and the Stage 3 brain now has 8-bit and 4-bit copies with almost the same story score.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
