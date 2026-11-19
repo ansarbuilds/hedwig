@@ -162,7 +162,10 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
 ## 18. Phase 2 storyteller training: 13.8M knobs on TinyStories + Gutenberg ✅
 
 - **Model (`13,780,864` / `~13.8M` knobs):** `vocab_size = 4096`, `block_size = 256` (~1,000 chars of story context), `n_embd = 384`, `n_head = 6`, `n_layer = 6`, `batch_size = 32`, `dropout = 0.05`, `lr = 1e-3` (`CosineAnnealingLR` over `3,000` steps).
-- **Measured val loss (first 1,500 steps ≈ 12.3M tokens seen, ~30 min on M4 `mps`):**
-  `0: 8.501 · 250: 3.113 🌟 · 500: 2.741 🌟 · 750: 2.535 🌟 · 1000: 2.405 🌟 · 1250: 2.313 🌟 · 1500: 2.276 🌟`
-- **Why it never overfit:** Every single checkpoint from step 0 to 1,500 hit a new personal best (`8.501 → 2.276`, which is **`2.276 ÷ 3.87 ≈ 0.588` per character** — less than half of Shakespeare's `1.481`!). Because the training set has `14.1M` tokens, `1,500` steps (`12.3M` tokens) didn't even finish 1 full pass through the library, so the model kept learning real story structure instead of memorizing.
-- **Sample output at step 1,500 (`brain.pt`, ~55 MB):** Writes complete multi-paragraph children's stories with characters, dialogue, and a moral at the end (`"Once upon a time, a little owl Zane... flew back to his nest... learned that sometimes, we can still be safe and kind to others."`), and can resume from `ckpt.pt` (`step 1500 → 3000`) anytime for even sharper stories.
+- **Measured val loss across all 3,000 steps (~24.6M tokens seen, ~59 min total on M4 `mps`, resumed cleanly at step 1,500):**
+  `0: 8.501 · 250: 3.113 🌟 · 500: 2.741 🌟 · 750: 2.535 🌟 · 1000: 2.405 🌟 · 1250: 2.313 🌟 · 1500: 2.275 🌟 · 1750: 2.209 🌟 · 2000: 2.156 🌟 · 2250: 2.132 🌟 · 2500: 2.113 🌟 · 2750: 2.080 🌟 (best) · 3000: 2.089`
+- **Why it never overfit:** Validation loss dropped from `8.501` all the way to **`2.080`** (`2.080 ÷ 3.87 ≈ 0.537` per character —nearly **3× better** than Shakespeare's `1.481`!).
+- **What improved from step 1,500 (`2.276`) → step 2,750 (`2.080`):**
+  - At step 1,500, `"Once upon a time, a little owl "` briefly drifted into calling the owl a monkey that *"barked happily"*, and `"found a magic "` produced `"magic icero"`.
+  - At step 2,750 (`2.080`), **Zoey the little owl stays an owl living in a big tree for the entire story** (`"...thanked his friends for the kindness and for helping him. From that day on, Zoey never had to worry again."`), and `"found a magic "` produces **`"magic ingredient"`** and **`"magic spell"`**.
+- **16-bit weight saving (`bfloat16`):** Saving `brain.pt` in `bfloat16` cuts the file size in half from `53.0 MB` down to **`27.8 MB`** (well under GitHub's 50 MB warning) with zero quality loss.

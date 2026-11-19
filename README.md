@@ -2,13 +2,13 @@
 
 A tiny GPT-style language model built from scratch to learn how LLMs work.
 - **v1:** 4.8M-parameter character-level Transformer trained on Tiny Shakespeare in ~16 minutes on a MacBook Air M4 (final loss `1.481`).
-- **v2 (Phase 2 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, loss `2.276` at step 1,500):
+- **v2 (Phase 2 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained 3,000 steps on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, val loss **`2.080`**, `brain.pt` = `27.8 MB` in `bfloat16`):
 
 ```
-Once upon a time, a little owl Zane had a beautiful house...
-The owl flew for a long time... Then, he flew back to his nest
-and started to fly after the wind. He was so happy he had seen his mommy.
-... Red and Tweety learned that sometimes, we can still be safe and kind to others.
+Once upon a time, a little owl Zoey lived in a big tree. The little owl
+was very brave... Then, his friends saw him struggling. They asked him
+what was wrong... Zoey was so happy. He thanked his friends for the
+kindness and for helping him. From that day on, Zoey never had to worry again.
 ```
 
 ## Run it

@@ -20,7 +20,7 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 - [x] Download **TinyStories** from Hugging Face (`roneneldan/TinyStories` — `52.4 MB` train + `10.5 MB` val)
 - [x] Download a subset of **Project Gutenberg** (10 public-domain pre-1929 storybooks: *Alice*, *Looking-Glass*, *Wizard of Oz*, *Peter Pan*, *Grimm*, *Andersen*, *Jungle Book*, *Treasure Island*, *Sherlock Holmes*, *Time Machine* — `~3.0 MB` cleaned)
 - [x] Write `prepare_data.py`: clean → train 4,096-vocab BPE (`3.87` chars/token) → save as `uint16` `.bin` shards (`14.1M` train tokens in `data/train.bin`, `2.7M` val tokens in `data/val.bin`)
-- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.276` in 1,500 steps with zero overfitting; writes coherent short stories; resumable to 3,000 steps anytime).
+- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.080` across 3,000 steps with zero overfitting; writes coherent short stories; `brain.pt` saved in `bfloat16` at `27.8 MB`).
 
 ## Phase 3: First cloud run (~$15–30)
 See `docs/CLOUD_GPU_100.md`.

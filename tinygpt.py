@@ -152,7 +152,8 @@ def train():
             print(f"step {step:5d} | test score (lower=smarter) {vl:.3f} | {time.time()-t0:.0f}s", flush=True)
             if step > 0 and vl < best_val:
                 best_val = vl
-                torch.save(model.state_dict(), "brain.pt.tmp")
+                bf16_sd = {k: (v.to(torch.bfloat16) if v.is_floating_point() else v) for k, v in model.state_dict().items()}
+                torch.save(bf16_sd, "brain.pt.tmp")
                 os.replace("brain.pt.tmp", "brain.pt")
                 print(f"  🌟 saved new best brain.pt (score {best_val:.3f})", flush=True)
             model.train()
