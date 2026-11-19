@@ -67,17 +67,24 @@ class CausalSelfAttention(nn.Module):
         self.register_buffer("cos", freqs.cos()[None, None, :, :])
         self.register_buffer("sin", freqs.sin()[None, None, :, :])
 
-    def forward(self, x):
+    def forward(self, x, kv_cache=None, start_pos=0):
         B, T, C = x.shape
         q, k, v = self.qkv(x).split(C, dim=-1)
         q = q.view(B, T, n_head, self.head_dim).transpose(1, 2)
         k = k.view(B, T, n_head, self.head_dim).transpose(1, 2)
         v = v.view(B, T, n_head, self.head_dim).transpose(1, 2)
-        q = apply_rope(q, self.cos[:, :, :T], self.sin[:, :, :T])
-        k = apply_rope(k, self.cos[:, :, :T], self.sin[:, :, :T])
+        cos = self.cos[:, :, start_pos:start_pos + T]
+        sin = self.sin[:, :, start_pos:start_pos + T]
+        q, k = apply_rope(q, cos, sin), apply_rope(k, cos, sin)
+        if kv_cache is not None:
+            if kv_cache[0] is not None:
+                k = torch.cat([kv_cache[0], k], dim=2)
+                v = torch.cat([kv_cache[1], v], dim=2)
+            kv_cache[0], kv_cache[1] = k, v
         # MPS SDPA doesn't support attention dropout, so use 0.0 on mps (residual dropout still applies)
         attn_drop = dropout if (self.training and x.device.type != "mps") else 0.0
-        out = F.scaled_dot_product_attention(q, k, v, dropout_p=attn_drop, is_causal=True)
+        causal = (kv_cache is None) or (T > 1)
+        out = F.scaled_dot_product_attention(q, k, v, dropout_p=attn_drop, is_causal=causal)
         out = out.transpose(1, 2).contiguous().view(B, T, C)
         return self.drop(self.proj(out))
 
@@ -100,9 +107,21 @@ class Block(nn.Module):
         self.attn = CausalSelfAttention()
         self.ln2 = nn.RMSNorm(n_embd)
         self.mlp = SwiGLU()
-    def forward(self, x):
-        x = x + self.attn(self.ln1(x))
+    def forward(self, x, kv_cache=None, start_pos=0):
+        x = x + self.attn(self.ln1(x), kv_cache=kv_cache, start_pos=start_pos)
         return x + self.mlp(self.ln2(x))
+
+def sample_next(logits, recent_ids=None, temperature=0.75, top_k=40, rep_penalty=1.15):
+    """Pick the next word-piece using repetition penalty (no loops) + top-k filtering (no weird typos)."""
+    logits = logits[:, -1, :].float()
+    if recent_ids and rep_penalty > 1.0:
+        for tok_id in set(recent_ids[-64:]):
+            logits[0, tok_id] = logits[0, tok_id] / rep_penalty if logits[0, tok_id] > 0 else logits[0, tok_id] * rep_penalty
+    logits = logits / max(temperature, 1e-4)
+    if top_k and top_k < logits.size(-1):
+        v, _ = torch.topk(logits, top_k)
+        logits[logits < v[:, [-1]]] = float("-inf")
+    return torch.multinomial(F.softmax(logits, dim=-1), 1)
 
 class TinyGPT(nn.Module):
     def __init__(self):
@@ -111,17 +130,28 @@ class TinyGPT(nn.Module):
         self.blocks = nn.Sequential(*[Block() for _ in range(n_layer)])
         self.ln = nn.RMSNorm(n_embd)
         self.head = nn.Linear(n_embd, vocab_size)
-    def forward(self, idx, targets=None):
+    def forward(self, idx, targets=None, kv_cache=None, start_pos=0):
         x = self.tok(idx)
-        logits = self.head(self.ln(self.blocks(x)))
+        for i, block in enumerate(self.blocks):
+            x = block(x, kv_cache=None if kv_cache is None else kv_cache[i], start_pos=start_pos)
+        logits = self.head(self.ln(x))
         loss = None if targets is None else F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
         return logits, loss
     @torch.no_grad()
-    def generate(self, idx, n, temperature=0.8):
-        for _ in range(n):
-            logits, _ = self(idx[:, -block_size:])
-            probs = F.softmax(logits[:, -1] / temperature, dim=-1)
-            idx = torch.cat([idx, torch.multinomial(probs, 1)], dim=1)
+    def generate(self, idx, n, temperature=0.75, top_k=40, rep_penalty=1.15):
+        kv_cache = [[None, None] for _ in range(n_layer)]
+        T0 = idx.size(1)
+        logits, _ = self(idx[:, -block_size:], kv_cache=kv_cache, start_pos=0)
+        nxt = sample_next(logits, idx[0].tolist(), temperature, top_k, rep_penalty)
+        idx = torch.cat([idx, nxt], dim=1)
+        for step in range(1, n):
+            pos = T0 + step - 1
+            if pos < block_size:
+                logits, _ = self(idx[:, -1:], kv_cache=kv_cache, start_pos=pos)
+            else:
+                logits, _ = self(idx[:, -block_size:])
+            nxt = sample_next(logits, idx[0].tolist(), temperature, top_k, rep_penalty)
+            idx = torch.cat([idx, nxt], dim=1)
         return idx
 
 def train():

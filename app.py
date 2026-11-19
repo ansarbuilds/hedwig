@@ -1,15 +1,15 @@
 """
-Phase 5 for Hedwig: Simple offline Mac Chat UI (zero external dependencies).
+Phase 5 for Hedwig: Offline Mac Chat UI with Live Word-by-Word Streaming & KV Cache.
 
-Starts a local web server on http://127.0.0.1:8000 where you can chat with Hedwig
-and switch live between the 16-bit (27.8 MB), 8-bit (13.9 MB), and 4-bit (7.8 MB)
-quantized story brains!
+Starts a local web server on http://127.0.0.1:8000 where you can chat with Hedwig,
+watch stories stream out word-by-word at ~90 tokens/sec, and switch live between
+Stage 3 DPO (27.8 MB), Stage 2 SFT (27.8 MB), 8-bit (14.0 MB), and 4-bit (7.9 MB) brains!
 
 Run:   .venv/bin/python app.py
 """
 import json, os, sys, time, webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import torch, torch.nn.functional as F
+import torch
 import tinygpt, sft, quantize
 
 PORT = 8000
@@ -26,7 +26,7 @@ BRAIN_SPECS = {
 def get_model(key):
     """Lazy-load and cache the requested brain on the M4 GPU."""
     if key not in BRAIN_SPECS:
-        key = "chat_16"
+        key = "dpo_16"
     if key not in MODELS:
         label, path, mode, bits = BRAIN_SPECS[key]
         if not os.path.exists(path):
@@ -78,7 +78,7 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
 </head>
 <body>
 <header>
-  <div class="brand">🦉 Hedwig <span class="badge">13.8M knobs · 100% Offline on Mac M4</span></div>
+  <div class="brand">🦉 Hedwig <span class="badge">13.8M · KV Cache (~90 tok/s) · Offline M4</span></div>
   <div class="controls">
     <label>Brain:
       <select id="model">
@@ -96,16 +96,16 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
 </header>
 <div class="chipbar">
   <span class="chip" onclick="useChip('Tell me a story where a little girl named Lily finds a shiny key in the garden.')">🔑 Lily & the shiny key</span>
-  <span class="chip" onclick="useChip('Write a story: A little bird named Pip learns to fly high above the forest with his mom.')">🐦 Pip learns to fly</span>
-  <span class="chip" onclick="useChip('Write a short story about dog and ball.')">🐶 Dog & ball</span>
-  <span class="chip" onclick="useChip('Once upon a time, a little owl ')">🦉 Once upon a time, a little owl...</span>
+  <span class="chip" onclick="useChip('Write a short story about dragon and castle.')">🐉 Dragon & castle</span>
+  <span class="chip" onclick="useChip('Write a short story about owl and tree.')">🦉 Owl & tree</span>
+  <span class="chip" onclick="useChip('Once upon a time, a little owl ')">📖 Autocomplete: Once upon a time...</span>
 </div>
 <div id="chat">
-  <div class="msg bot">Hello! I'm <b>Hedwig</b>, your 13.8-million-knob storytelling model running completely offline on your MacBook Air M4. Pick a 16-bit, 8-bit, or 4-bit brain above and ask me for a story!</div>
+  <div class="msg bot">Hello! I'm <b>Hedwig</b>, running completely offline on your MacBook Air M4 with <b>KV Cache (~90 tokens/sec)</b>, <b>Top-k=40 filtering</b>, and <b>Repetition Penalty (1.15)</b>. Pick a brain above and watch me stream stories word-by-word!</div>
 </div>
 <footer>
   <form onsubmit="send(event)">
-    <input id="prompt" type="text" placeholder="Ask for a story (e.g. Tell me a story where a brave little owl finds a treasure)..." autofocus>
+    <input id="prompt" type="text" placeholder="Ask for a story (e.g. Write a short story about dragon and castle)..." autofocus>
     <button id="btn" type="submit">Write Story</button>
   </form>
 </footer>
@@ -114,19 +114,18 @@ const chat = document.getElementById('chat');
 const input = document.getElementById('prompt');
 const btn = document.getElementById('btn');
 function useChip(text){ input.value = text; input.focus(); }
-function addMsg(cls, text, meta=''){
+function addMsg(cls, text){
   const d = document.createElement('div');
   d.className = 'msg ' + cls;
-  d.textContent = text;
-  if(meta){
-    const m = document.createElement('div');
-    m.className = 'meta';
-    m.textContent = meta;
-    d.appendChild(m);
-  }
+  const body = document.createElement('div');
+  body.textContent = text;
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  d.appendChild(body);
+  d.appendChild(meta);
   chat.appendChild(d);
   chat.scrollTop = chat.scrollHeight;
-  return d;
+  return {box: d, body, meta};
 }
 async function send(e){
   e.preventDefault();
@@ -135,9 +134,9 @@ async function send(e){
   input.value = '';
   addMsg('user', p);
   btn.disabled = true;
-  const thinking = addMsg('bot', '🦉 Hedwig is writing...');
+  const bot = addMsg('bot', '🦉 ...');
   try {
-    const res = await fetch('/api/generate', {
+    const res = await fetch('/api/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -146,14 +145,25 @@ async function send(e){
         temperature: parseFloat(document.getElementById('temp').value)
       })
     });
-    const data = await res.json();
-    thinking.textContent = data.story;
-    const m = document.createElement('div');
-    m.className = 'meta';
-    m.textContent = `${data.label} (${data.mb.toFixed(1)} MB) · ${data.seconds.toFixed(2)}s`;
-    thinking.appendChild(m);
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while(true){
+      const {value, done} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream: true});
+      const lines = buf.split('\\n');
+      buf = lines.pop();
+      for(const line of lines){
+        if(!line.trim()) continue;
+        const evt = JSON.parse(line);
+        bot.body.textContent = evt.text;
+        bot.meta.textContent = `${evt.label} (${evt.mb.toFixed(1)} MB) · ${evt.tokens} tokens · ${evt.tps.toFixed(0)} tok/s · ${evt.seconds.toFixed(2)}s`;
+        chat.scrollTop = chat.scrollHeight;
+      }
+    }
   } catch(err) {
-    thinking.textContent = 'Error: ' + err;
+    bot.body.textContent = 'Error: ' + err;
   } finally {
     btn.disabled = false;
     chat.scrollTop = chat.scrollHeight;
@@ -178,26 +188,50 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(length) or b"{}")
         prompt = req.get("prompt", "Write a short story about a little owl.")
-        key = req.get("model", "chat_16")
+        key = req.get("model", "dpo_16")
         temp = max(0.1, min(1.5, float(req.get("temperature", 0.75))))
         model, label, _, mode, mb = get_model(key)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+
         t0 = time.time()
+        n_tok = 0
         if mode == "base":
             idx = torch.tensor([tinygpt.encode(prompt)], device=tinygpt.device)
-            story = tinygpt.decode(model.generate(idx, 180, temperature=temp)[0].tolist())
+            kv_cache = [[None, None] for _ in range(tinygpt.n_layer)]
+            T0 = idx.size(1)
+            for step in range(180):
+                pos = T0 + step - 1
+                with torch.no_grad():
+                    if step == 0:
+                        logits, _ = model(idx[:, -tinygpt.block_size:], kv_cache=kv_cache, start_pos=0)
+                    elif pos < tinygpt.block_size:
+                        logits, _ = model(idx[:, -1:], kv_cache=kv_cache, start_pos=pos)
+                    else:
+                        logits, _ = model(idx[:, -tinygpt.block_size:])
+                nxt = tinygpt.sample_next(logits, idx[0].tolist(), temperature=temp)
+                idx = torch.cat([idx, nxt], dim=1)
+                n_tok += 1
+                dt = max(1e-4, time.time() - t0)
+                text = tinygpt.decode(idx[0].tolist())
+                pkt = json.dumps({"text": text, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt}) + "\n"
+                self.wfile.write(pkt.encode("utf-8"))
+                self.wfile.flush()
         else:
-            story = sft.reply(model, prompt, max_new_tokens=220, temperature=temp)
-        out = json.dumps({"story": story, "label": label, "mb": mb, "seconds": time.time() - t0}).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(out)))
-        self.end_headers()
-        self.wfile.write(out)
+            for partial in sft.reply_stream(model, prompt, max_new_tokens=220, temperature=temp):
+                n_tok += 1
+                dt = max(1e-4, time.time() - t0)
+                pkt = json.dumps({"text": partial, "label": label, "mb": mb, "tokens": n_tok, "seconds": dt, "tps": n_tok / dt}) + "\n"
+                self.wfile.write(pkt.encode("utf-8"))
+                self.wfile.flush()
 
 if __name__ == "__main__":
-    get_model("chat_16")
+    get_model("dpo_16")
     url = f"http://127.0.0.1:{PORT}"
-    print(f"🦉 Hedwig Mac Chat UI running at {url} (Ctrl+C to stop)", flush=True)
+    print(f"🦉 Hedwig Mac Chat UI (Streaming + KV Cache) running at {url} (Ctrl+C to stop)", flush=True)
     if "--no-open" not in sys.argv:
         webbrowser.open(url)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

@@ -206,3 +206,13 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - Added a `0.5 * chosen_nll` fluency anchor (Llama-3 / RPO style) so Hedwig must prefer 👍 over 👎 **while** maintaining fluent English on 👍 stories.
   - **Measured curve:** `step 0: DPO 0.693 (win 0.0%) · step 50: DPO 0.639 (win 87.9% 🌟) · step 100: DPO 0.598 (win 91.7% 🌟) · step 150: DPO 0.602 (win 89.6%)`
   - **Result (`brain_dpo.pt`, `27.8 MB` in `bfloat16`):** Reached **`91.7%` preference win-rate** in 100 steps (`103 s`) and writes clean, grammatical, on-topic stories (`"Once upon a time, there was a little girl named Lily. She was very happy because she found a shiny key... From that day on, Lily and Lily played together and had lots of fun. The end."`). All 3 stages of a modern ChatGPT-style LLM (`Pretrain → SFT → DPO`) are now complete from scratch!
+
+## 22. KV Cache (~2× faster inference) + Top-k + Repetition Penalty + Word-by-Word Streaming ✅
+
+- **KV Cache ("Bookmarking past words" in `tinygpt.py` & `sft.py`):**
+  - Without a KV cache, generating word #180 re-computes Queries, Keys, and Values for all 179 earlier words (`47.2 tokens/sec`, `3.81 s` for 180 tokens on M4 `mps`).
+  - With a KV cache (`kv_cache = [[k_past, v_past], ...]`), Hedwig saves the rotated Keys and Values of earlier words and only computes the **1 newest word** at each step: **`89.0 tokens/sec` (`2.02 s` for 180 tokens — `1.89×` faster!)**.
+- **Top-k (`top_k = 40`) + Repetition Penalty (`rep_penalty = 1.15` in `sample_next`):**
+  - Gently divides the logit score of tokens used in the last 64 steps by `1.15` (stopping `"the dragon... a big dragon... give the dragon"` loops) and restricts sampling to the 40 most sensible next words (cutting off 0.01% nonsense typos).
+- **Live Word-by-Word Streaming (`app.py` at `http://127.0.0.1:8000`):**
+  - Streams NDJSON chunks from `sft.reply_stream()` over `ReadableStream` so stories type out word-by-word on screen at `~89 tok/s` with a live tokens/sec counter.

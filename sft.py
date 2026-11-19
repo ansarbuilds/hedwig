@@ -172,20 +172,36 @@ def train():
     print(f"Done! Best {chat_brain} score: {best_val:.3f}", flush=True)
 
 @torch.no_grad()
-def reply(model, prompt, max_new_tokens=220, temperature=0.75):
-    """Format a user prompt, generate Hedwig's story response, and stop at story end (\n\n)."""
+def reply_stream(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, rep_penalty=1.15):
+    """Yield Hedwig's story response word-by-word using KV cache + top-k + repetition penalty."""
     prefix = f"User: {prompt.strip()}\nHedwig: "
     idx = torch.tensor([tinygpt.encode(prefix)], device=tinygpt.device)
     start_len = idx.size(1)
-    for _ in range(max_new_tokens):
-        logits, _ = model(idx[:, -tinygpt.block_size:])
-        probs = F.softmax(logits[:, -1] / temperature, dim=-1)
-        idx = torch.cat([idx, torch.multinomial(probs, 1)], dim=1)
+    kv_cache = [[None, None] for _ in range(tinygpt.n_layer)]
+    for step in range(max_new_tokens):
+        pos = start_len + step - 1
+        if step == 0:
+            logits, _ = model(idx[:, -tinygpt.block_size:], kv_cache=kv_cache, start_pos=0)
+        elif pos < tinygpt.block_size:
+            logits, _ = model(idx[:, -1:], kv_cache=kv_cache, start_pos=pos)
+        else:
+            logits, _ = model(idx[:, -tinygpt.block_size:])
+        nxt = tinygpt.sample_next(logits, idx[0, start_len:].tolist(), temperature, top_k, rep_penalty)
+        idx = torch.cat([idx, nxt], dim=1)
         text = tinygpt.decode(idx[0, start_len:].tolist())
         for stop in ("\n\n", "Summary:", "Features:", "Random sentence:", "User:"):
             if stop in text:
-                return text.split(stop)[0].strip()
-    return tinygpt.decode(idx[0, start_len:].tolist()).strip()
+                yield text.split(stop)[0].strip()
+                return
+        yield text.strip()
+
+@torch.no_grad()
+def reply(model, prompt, max_new_tokens=220, temperature=0.75, top_k=40, rep_penalty=1.15):
+    """Format a user prompt, generate Hedwig's story response, and stop at story end (\n\n)."""
+    last = ""
+    for partial in reply_stream(model, prompt, max_new_tokens, temperature, top_k, rep_penalty):
+        last = partial
+    return last
 
 def talk():
     model = tinygpt.TinyGPT().to(tinygpt.device)
