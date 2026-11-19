@@ -1,26 +1,28 @@
 """
 Hedwig - your very own mini LLM!
 
-It reads Shakespeare as BPE word-pieces and learns to guess the next piece.
-Run:   python tinygpt.py train      (teach the brain, saves brain.pt)
-       python tinygpt.py talk       (let the brain write something)
+It reads TinyStories + classic novels as 4,096 BPE word-pieces and learns to write stories.
+Run:   python prepare_data.py       (download stories, train 4k BPE, build uint16 .bin shards)
+       python tinygpt.py train      (teach the brain, saves brain.pt)
+       python tinygpt.py talk       (let the brain write a story)
 """
-import os, sys, time, torch, torch.nn as nn, torch.nn.functional as F
+import os, sys, time, numpy as np, torch, torch.nn as nn, torch.nn.functional as F
 import tokenizer
 
-# ---- Settings (the "size" of the brain) ----
-block_size = 128   # how many pieces it can remember at once
-n_embd     = 256   # how big each "thought" is
-n_head     = 4     # how many ways it looks at the text at once
+# ---- Settings (the "size" of the brain: ~13.8M knobs) ----
+block_size = 256   # how many pieces it can remember at once (~1,000 letters of story!)
+n_embd     = 384   # how big each "thought" is
+n_head     = 6     # how many ways it looks at the text at once (64 per head)
 n_layer    = 6     # how many thinking layers stacked up
-dropout    = 0.1
-batch_size = 64
+dropout    = 0.05
+batch_size = 32
 steps      = 3000
 lr         = 1e-3
 ckpt_path  = "ckpt.pt"   # the save-point file
 ckpt_every = 250         # save every N steps
 tok_path   = "tokenizer.json"
-cache_path = "data/tokens_512.pt"
+train_bin  = "data/train.bin"
+val_bin    = "data/val.bin"
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 use_bf16 = device in ("cuda", "mps")  # 16-bit bfloat16 math on GPU (faster, half the activation memory)
 
@@ -31,13 +33,12 @@ encode = lambda s: tokenizer.encode(s, merges)
 decode = lambda l: tokenizer.decode(l, vocab)
 
 def load_data():
-    """Encode Shakespeare once with BPE and cache it so training starts fast."""
-    if os.path.exists(cache_path):
-        data = torch.load(cache_path)
-    else:
-        print("Encoding data/input.txt with BPE (one-time ~30s, caching for future runs)...", flush=True)
-        data = torch.tensor(encode(open("data/input.txt").read()), dtype=torch.long)
-        torch.save(data, cache_path)
+    """Load uint16 token shards built by prepare_data.py (or fall back to data/input.txt)."""
+    if os.path.exists(train_bin) and os.path.exists(val_bin):
+        tr = torch.from_numpy(np.fromfile(train_bin, dtype=np.uint16).astype(np.int64))
+        va = torch.from_numpy(np.fromfile(val_bin,   dtype=np.uint16).astype(np.int64))
+        return tr, va
+    data = torch.tensor(encode(open("data/input.txt").read()), dtype=torch.long)
     split = int(0.9 * len(data))
     return data[:split], data[split:]
 
@@ -174,10 +175,10 @@ def talk():
     model = TinyGPT().to(device)
     model.load_state_dict(torch.load("brain.pt", map_location=device))
     model.eval()
-    start = sys.argv[2] if len(sys.argv) > 2 else "ROMEO:"
+    start = sys.argv[2] if len(sys.argv) > 2 else "Once upon a time, a little owl "
     idx = torch.tensor([encode(start)], device=device)
     print("🦉 Hedwig says:\n")
-    print(decode(model.generate(idx, 500)[0].tolist()))
+    print(decode(model.generate(idx, 200)[0].tolist()))
 
 if __name__ == "__main__":
     train() if (sys.argv[1:] or ["train"])[0] == "train" else talk()

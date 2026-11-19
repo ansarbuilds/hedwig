@@ -1,12 +1,14 @@
 # 🦉 Hedwig
 
 A tiny GPT-style language model built from scratch to learn how LLMs work.
-v1 is a 4.8M-parameter character-level Transformer trained on Tiny Shakespeare in ~16 minutes on a MacBook Air M4 (final loss 1.48).
+- **v1:** 4.8M-parameter character-level Transformer trained on Tiny Shakespeare in ~16 minutes on a MacBook Air M4 (final loss `1.481`).
+- **v2 (Phase 2 Storyteller):** 13.8M-parameter modern Transformer (4,096-vocab BPE, RoPE, RMSNorm, SwiGLU, `bf16`, SDPA) trained on **TinyStories + 10 Project Gutenberg novels** (`14.1M` tokens, loss `2.276` at step 1,500):
 
 ```
-ROMEO:
-And struck at Petruchio, by what a thou blest,
-And like to venge her; our proported service
+Once upon a time, a little owl Zane had a beautiful house...
+The owl flew for a long time... Then, he flew back to his nest
+and started to fly after the wind. He was so happy he had seen his mommy.
+... Red and Tweety learned that sometimes, we can still be safe and kind to others.
 ```
 
 ## Run it
@@ -14,18 +16,20 @@ And like to venge her; our proported service
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python tinygpt.py talk "ROMEO:"   # use the included brain.pt
-.venv/bin/python tinygpt.py train           # or retrain (~16 min on M4, faster on CUDA)
+.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "   # use included brain.pt
+.venv/bin/python prepare_data.py                                     # download stories & build .bin shards
+.venv/bin/python tinygpt.py train                                    # train or resume from ckpt.pt
 ```
 
 ## Files
 
 | Path | What |
 |---|---|
-| `tinygpt.py` | Model, training loop with checkpoint/resume, text generation |
-| `tokenizer.py` | From-scratch BPE tokenizer (`minbpe` style) |
-| `tokenizer.json` | Learned BPE merges (512 vocab on Tiny Shakespeare) |
-| `brain.pt` | Trained weights (18 MB) |
+| `tinygpt.py` | ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), training loop, story generation |
+| `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
+| `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
+| `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
+| `brain.pt` | Trained weights |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Visual explainer: knobs, training, model sizes |
 | `docs/LEARNINGS.md` | Concepts and measured results |

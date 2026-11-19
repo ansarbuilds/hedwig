@@ -147,3 +147,22 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - Slightly higher val loss (`3.086` vs `3.002` at step 500; `3.213` vs `3.080` at step 750) because `attn_drop = 0.0` meant slightly less regularization on tiny `511k`-token Shakespeare (so it overfit a touch sooner).
   - Microbenchmark on M4 `mps` (`bf16`): manual attention was faster locally (`69 ms` vs `138 ms` at `T=128`; `1007 ms` vs `2067 ms` at `T=512`), end-to-end `410 s` vs `368 s` for 750 steps. Kept SDPA because it is cleaner, drops the `T × T` mask buffer, and automatically enables FlashAttention on NVIDIA CUDA in Phase 3/4.
 - **Phase 1 takeaway:** Hedwig now has the full modern Llama/nanochat building-block stack (BPE + RoPE + RMSNorm + SwiGLU + `bf16` + SDPA + checkpoint/resume + best-val saving). All five runs hit the exact same `~3.00–3.08` floor at step 500 because Tiny Shakespeare (`511k` tokens) is too small — time for Phase 2 (TinyStories + Gutenberg)!
+
+## 17. Phase 2 data pipeline: TinyStories + Project Gutenberg + 4,096-vocab BPE (`prepare_data.py`)
+
+- **Speeding up pure-Python BPE (~130× faster):** Upgraded `tokenizer.py` with GPT-2 style word-chunk pre-splitting (`PAT`) and a unique-word frequency counter / lookup cache so each distinct word is solved once instead of re-scanning millions of characters.
+- **Data (`65.0 MB` cleaned stories):**
+  - `roneneldan/TinyStories`: `52.4 MB` train + `10.5 MB` val.
+  - 10 pre-1929 public-domain Project Gutenberg storybooks (*Alice in Wonderland*, *Through the Looking-Glass*, *Wizard of Oz*, *Peter Pan*, *Grimm's Fairy Tales*, *Andersen's Fairy Tales*, *The Jungle Book*, *Treasure Island*, *Sherlock Holmes*, *The Time Machine*): `~3.0 MB` after stripping headers/footers.
+- **4,096-vocab BPE (`tokenizer.json`):** Trained 3,840 merges (`256` bytes + `3,840` merges = `4,096` pieces) in ~4 seconds. Compresses stories by **`3.87 chars/token`** (nearly 4× shorter than char-level; common whole words like `'Once'`, `' upon'`, `' little'`, `' owl'`, `' golden'` are single tokens).
+- **`uint16` `.bin` shards:** Tokenized all `65 MB` in `2.7 s` (`25.6 s` total including downloads):
+  - `data/train.bin`: **`14,069,966` tokens** (`28.1 MB`, ~27× more tokens than Tiny Shakespeare!)
+  - `data/val.bin`: **`2,726,648` tokens** (`5.5 MB`)
+
+## 18. Phase 2 storyteller training: 13.8M knobs on TinyStories + Gutenberg ✅
+
+- **Model (`13,780,864` / `~13.8M` knobs):** `vocab_size = 4096`, `block_size = 256` (~1,000 chars of story context), `n_embd = 384`, `n_head = 6`, `n_layer = 6`, `batch_size = 32`, `dropout = 0.05`, `lr = 1e-3` (`CosineAnnealingLR` over `3,000` steps).
+- **Measured val loss (first 1,500 steps ≈ 12.3M tokens seen, ~30 min on M4 `mps`):**
+  `0: 8.501 · 250: 3.113 🌟 · 500: 2.741 🌟 · 750: 2.535 🌟 · 1000: 2.405 🌟 · 1250: 2.313 🌟 · 1500: 2.276 🌟`
+- **Why it never overfit:** Every single checkpoint from step 0 to 1,500 hit a new personal best (`8.501 → 2.276`, which is **`2.276 ÷ 3.87 ≈ 0.588` per character** — less than half of Shakespeare's `1.481`!). Because the training set has `14.1M` tokens, `1,500` steps (`12.3M` tokens) didn't even finish 1 full pass through the library, so the model kept learning real story structure instead of memorizing.
+- **Sample output at step 1,500 (`brain.pt`, ~55 MB):** Writes complete multi-paragraph children's stories with characters, dialogue, and a moral at the end (`"Once upon a time, a little owl Zane... flew back to his nest... learned that sometimes, we can still be safe and kind to others."`), and can resume from `ckpt.pt` (`step 1500 → 3000`) anytime for even sharper stories.
