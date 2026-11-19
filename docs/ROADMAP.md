@@ -28,11 +28,10 @@ See `docs/CLOUD_GPU_100.md`.
 - [ ] Run **Karpathy's nanochat** speedrun end to end to see a full pretrain → SFT → chat pipeline. Read every script.
 - [ ] Download the result; chat with it locally
 
-## Phase 4: Hedwig-chat storyteller (~$50–70)
-- [ ] Swap nanochat's pretraining data for stories (TinyStories + Gutenberg + optionally FineWeb-Edu for world knowledge)
-- [ ] Build an SFT set of "instruction → story" pairs (e.g. "Write a mystery about a lost ring")
-  - Optionally generate with an **open** teacher model (Qwen / Mistral, Apache-2.0); check the license
-- [ ] Train, download, compare with the base model
+## Phase 4: Hedwig-chat storyteller (Local prototype ✅, ~$50–70 cloud scale-up next)
+- [x] Build an SFT set of "instruction → story" pairs (`13,852` train + `2,327` val pairs from `TinyStories-Instruct` in `sft.py`, with `-100` prompt loss masking)
+- [x] Train local 13.8M SFT chat model (`brain_chat.pt`, response loss `2.077 → 1.766` in 750 steps) with interactive `sft.py chat` / `sft.py talk`
+- [ ] Scale up on cloud GPU (~124M–560M nanochat speedrun on TinyStories + Gutenberg + optionally FineWeb-Edu) and compare with the local 13.8M model
 
 ## Phase 5: Ship it ($0)
 - [ ] Quantize to 8-bit / 4-bit; measure quality vs size

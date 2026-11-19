@@ -10,3 +10,6 @@ data/*
 ckpt.pt
 ckpt.pt.tmp
 brain.pt.tmp
+ckpt_sft.pt
+ckpt_sft.pt.tmp
+brain_chat.pt.tmp

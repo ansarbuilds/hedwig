@@ -16,20 +16,25 @@ kindness and for helping him. From that day on, Zoey never had to worry again.
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "   # use included brain.pt
+.venv/bin/python sft.py talk "Tell me a story where a little girl named Lily finds a shiny key in the garden."
+.venv/bin/python sft.py chat                                         # interactive terminal chat (`brain_chat.pt`)
+.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "   # base autocomplete model (`brain.pt`)
 .venv/bin/python prepare_data.py                                     # download stories & build .bin shards
-.venv/bin/python tinygpt.py train                                    # train or resume from ckpt.pt
+.venv/bin/python tinygpt.py train                                    # Stage 1 pretraining
+.venv/bin/python sft.py train                                        # Stage 2 SFT ("chat manners")
 ```
 
 ## Files
 
 | Path | What |
 |---|---|
-| `tinygpt.py` | ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), training loop, story generation |
+| `tinygpt.py` | Stage 1: ~13.8M-param modern Transformer (RoPE, RMSNorm, SwiGLU, bf16, SDPA), pretraining & autocomplete |
+| `sft.py` | Stage 2: Supervised Fine-Tuning (prompt loss masking) & interactive story chat (`talk` / `chat`) |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
-| `brain.pt` | Trained weights |
+| `brain.pt` | Stage 1 pretrained storyteller weights (`27.8 MB` in `bfloat16`, val loss `2.080`) |
+| `brain_chat.pt` | Stage 2 SFT instruction-following weights (`27.8 MB` in `bfloat16`, response loss `1.766`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Visual explainer: knobs, training, model sizes |
 | `docs/LEARNINGS.md` | Concepts and measured results |

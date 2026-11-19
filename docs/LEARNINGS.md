@@ -22,10 +22,10 @@ Repeat thousands to billions of times.
 
 ## 3. The three stages of a ChatGPT-style model
 
-| Stage | Name | What it teaches | Hedwig v1 |
+| Stage | Name | What it teaches | Hedwig |
 |---|---|---|---|
-| 1 | Pretraining | Language, facts, style (learn to talk) | ✅ done |
-| 2 | SFT (supervised fine-tuning) | Answer questions, follow instructions (manners) | ❌ |
+| 1 | Pretraining | Language, facts, style (learn to talk) | ✅ done (`tinygpt.py` → `brain.pt`) |
+| 2 | SFT (supervised fine-tuning) | Answer questions, follow instructions (manners) | ✅ done (`sft.py` → `brain_chat.pt`) |
 | 3 | RLHF / DPO / RL | Give *better* answers | ❌ |
 
 ## 4. Hedwig v1 results (measured)
@@ -169,3 +169,13 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - At step 1,500, `"Once upon a time, a little owl "` briefly drifted into calling the owl a monkey that *"barked happily"*, and `"found a magic "` produced `"magic icero"`.
   - At step 2,750 (`2.080`), **Zoey the little owl stays an owl living in a big tree for the entire story** (`"...thanked his friends for the kindness and for helping him. From that day on, Zoey never had to worry again."`), and `"found a magic "` produces **`"magic ingredient"`** and **`"magic spell"`**.
 - **16-bit weight saving (`bfloat16`):** Saving `brain.pt` in `bfloat16` cuts the file size in half from `53.0 MB` down to **`27.8 MB`** (well under GitHub's 50 MB warning) with zero quality loss.
+
+## 19. Stage 2 — Supervised Fine-Tuning (SFT: "Chat Manners") (`sft.py`) ✅
+
+- **What SFT changes:** Stage 1 (`tinygpt.py`) only knows how to autocomplete text (and rambles into a second story after finishing the first). Stage 2 (`sft.py`) loads `brain.pt` (`13.8M` knobs) and trains on **`13,852` `User: <request>\nHedwig: <story>\n\n` pairs** (`2,327` val pairs) built from `roneneldan/TinyStoriesInstruct`.
+- **Two key SFT mechanics:**
+  1. **Prompt loss masking (`ignore_index = -100`):** All tokens in `User: ...\nHedwig:` (and right-padding) have target `-100`, so `F.cross_entropy` only grades Hedwig on the story response.
+  2. **End-of-story stopping (`\n\n`):** Every SFT story ends with `\n\n`, so `sft.py talk` and `sft.py chat` stop cleanly as soon as the single requested story finishes.
+- **Measured SFT response loss (750 steps at `lr = 2e-4`, `746 s` on M4 `mps`):**
+  `0: 2.077 · 150: 1.825 🌟 · 300: 1.769 🌟 · 450: 1.777 · 600: 1.781 · 750: 1.766 🌟 (best)`
+- **Result (`brain_chat.pt`, `27.8 MB` in `bfloat16`):** Follows story instructions (e.g. `"Tell me a story where a little girl named Lily finds a shiny key in the garden"` or `"Write a story: A little bird named Pip learns to fly high above the forest with his mom"`) and stops at the end of the story.
