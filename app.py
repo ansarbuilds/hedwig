@@ -7,7 +7,7 @@ quantized story brains!
 
 Run:   .venv/bin/python app.py
 """
-import json, os, time, webbrowser
+import json, os, sys, time, webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import torch, torch.nn.functional as F
 import tinygpt, sft, quantize
