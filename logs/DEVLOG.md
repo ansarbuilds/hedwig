@@ -29,3 +29,5 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **00:17** Refresh how-hedwig-learns.html, add 1-command cloud_train.sh, and add export_iphone.py (`118ab51`)
 - **00:25** Add KV cache (89 tok/s, 1.89x faster), top-k + repetition penalty, and word-by-word streaming in app.py (`79e2742`)
 - **01:13** Add Mixture-of-Experts (moe.py, 26.2M/11.6M), Distilled Baby Hedwig (distill.py, 3.4M/6.8MB), and Live Brain X-Ray in app.py (`cb4bab4`)
+- **01:21** Update README and AGENTS with full v1-v4 progress, optional Mac experiments, and Dec 2026 Cloud GPU plan (`4a06f07`)
+  > Completed all core zsh Mac milestones (Pretrain -> SFT -> DPO -> Quantize -> MoE -> Distill -> KV-Cache Streaming UI + Brain X-Ray + iPhone export + cloud_train.sh). Next: optional SSD/MLX/multilingual experiments on Mac, then Dec 2026 cloud GPU scale-up (--124m + nanochat).
