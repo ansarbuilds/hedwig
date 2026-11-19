@@ -34,3 +34,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **01:29** Add layer-by-layer SSD loading so we can measure RAM against speed. (`e6173fb`)
   > Streaming one thinking layer at a time cuts weights in memory from 53 MB to 19 MB and slows generation from 108 to 33 tok/s, with the same story.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **11:08** Make the cloud script resumable and prove it with a tiny local rehearsal. (`1e37ee9`)
+  > A crash no longer deletes checkpoints, the scale-up switch must really yield 91.3M knobs, and --dry-run finishes every stage in a sandbox without touching the real brains.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
