@@ -22,6 +22,7 @@ ckpt_every = 250         # save every N steps
 tok_path   = "tokenizer.json"
 cache_path = "data/tokens_512.pt"
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+use_bf16 = device in ("cuda", "mps")  # 16-bit bfloat16 math on GPU (faster, half the activation memory)
 
 # ---- The tokenizer: turn text into numbers (0..vocab_size-1) ----
 merges, vocab = tokenizer.load(tok_path)
@@ -64,7 +65,6 @@ class CausalSelfAttention(nn.Module):
         freqs = torch.outer(torch.arange(block_size).float(), inv_freq)
         self.register_buffer("cos", freqs.cos()[None, None, :, :])
         self.register_buffer("sin", freqs.sin()[None, None, :, :])
-        self.register_buffer("mask", torch.triu(torch.ones(block_size, block_size, dtype=torch.bool), 1)[None, None])
 
     def forward(self, x):
         B, T, C = x.shape
@@ -74,20 +74,31 @@ class CausalSelfAttention(nn.Module):
         v = v.view(B, T, n_head, self.head_dim).transpose(1, 2)
         q = apply_rope(q, self.cos[:, :, :T], self.sin[:, :, :T])
         k = apply_rope(k, self.cos[:, :, :T], self.sin[:, :, :T])
-        att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
-        att = att.masked_fill(self.mask[:, :, :T, :T], float("-inf"))
-        att = self.drop(F.softmax(att, dim=-1))
-        out = (att @ v).transpose(1, 2).contiguous().view(B, T, C)
+        # MPS SDPA doesn't support attention dropout, so use 0.0 on mps (residual dropout still applies)
+        attn_drop = dropout if (self.training and x.device.type != "mps") else 0.0
+        out = F.scaled_dot_product_attention(q, k, v, dropout_p=attn_drop, is_causal=True)
+        out = out.transpose(1, 2).contiguous().view(B, T, C)
         return self.drop(self.proj(out))
+
+class SwiGLU(nn.Module):
+    """Gated MLP (Llama style): one path acts as a learned dimmer switch for the other."""
+    def __init__(self):
+        super().__init__()
+        hidden = ((int(8 * n_embd / 3) + 63) // 64) * 64  # ~2/3 of 4*n_embd to match 2-layer knob count
+        self.gate = nn.Linear(n_embd, hidden, bias=False)
+        self.up   = nn.Linear(n_embd, hidden, bias=False)
+        self.down = nn.Linear(hidden, n_embd, bias=False)
+        self.drop = nn.Dropout(dropout)
+    def forward(self, x):
+        return self.drop(self.down(F.silu(self.gate(x)) * self.up(x)))
 
 class Block(nn.Module):
     def __init__(self):
         super().__init__()
-        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln1 = nn.RMSNorm(n_embd)
         self.attn = CausalSelfAttention()
-        self.ln2 = nn.LayerNorm(n_embd)
-        self.mlp = nn.Sequential(nn.Linear(n_embd, 4 * n_embd), nn.GELU(),
-                                 nn.Linear(4 * n_embd, n_embd), nn.Dropout(dropout))
+        self.ln2 = nn.RMSNorm(n_embd)
+        self.mlp = SwiGLU()
     def forward(self, x):
         x = x + self.attn(self.ln1(x))
         return x + self.mlp(self.ln2(x))
@@ -97,7 +108,7 @@ class TinyGPT(nn.Module):
         super().__init__()
         self.tok = nn.Embedding(vocab_size, n_embd)
         self.blocks = nn.Sequential(*[Block() for _ in range(n_layer)])
-        self.ln = nn.LayerNorm(n_embd)
+        self.ln = nn.RMSNorm(n_embd)
         self.head = nn.Linear(n_embd, vocab_size)
     def forward(self, idx, targets=None):
         x = self.tok(idx)
@@ -130,18 +141,19 @@ def train():
         best_val = ckpt.get("best_val", float("inf"))
         print(f"Resuming from step {start_step} (best score so far: {best_val:.3f})")
 
+    stop_step = int(sys.argv[2]) if len(sys.argv) > 2 else steps
     t0 = time.time()
-    for step in range(start_step, steps + 1):
+    for step in range(start_step, stop_step + 1):
         if step % 250 == 0:
             model.eval()
-            with torch.no_grad():
+            with torch.no_grad(), torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=use_bf16):
                 vl = sum(model(*get_batch(val_data))[1].item() for _ in range(20)) / 20
             print(f"step {step:5d} | test score (lower=smarter) {vl:.3f} | {time.time()-t0:.0f}s", flush=True)
             if step > 0 and vl < best_val:
                 best_val = vl
                 torch.save(model.state_dict(), "brain.pt.tmp")
                 os.replace("brain.pt.tmp", "brain.pt")
-                print(f"  🌟 saved new best brain.pt (score {best_val:.3f})")
+                print(f"  🌟 saved new best brain.pt (score {best_val:.3f})", flush=True)
             model.train()
 
         # ---- Save point ----
@@ -150,12 +162,13 @@ def train():
                     "sched": sched.state_dict(), "step": step, "best_val": best_val}
             torch.save(ckpt, ckpt_path + ".tmp")
             os.replace(ckpt_path + ".tmp", ckpt_path)
-            print(f"  💾 saved checkpoint at step {step}")
+            print(f"  💾 saved checkpoint at step {step}", flush=True)
 
-        _, loss = model(*get_batch(train_data))
+        with torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=use_bf16):
+            _, loss = model(*get_batch(train_data))
         opt.zero_grad(); loss.backward(); opt.step(); sched.step()
 
-    print(f"Done! Best brain.pt score: {best_val:.3f}")
+    print(f"Done! Best brain.pt score: {best_val:.3f}", flush=True)
 
 def talk():
     model = TinyGPT().to(device)

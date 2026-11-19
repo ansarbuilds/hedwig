@@ -116,3 +116,34 @@ Everything up to ~$10k produces a brain that runs on a 16 GB Mac (7B only at 4-b
   - At step 250: **`3.183`** vs `3.473` (0.29 lower!).
   - Hit the `~3.01` floor at **step 500 (`127 s`)** instead of step 750 (`188 s`) — learned roughly **1/3 faster**.
   - Floor stayed around `~3.01` because Tiny Shakespeare (`511k` BPE tokens) is now the bottleneck, not the model.
+
+## 13. RMSNorm (replacing `LayerNorm`)
+
+- Swapped all 13 `nn.LayerNorm(n_embd)` layers (`ln1`, `ln2`, `ln`) for `nn.RMSNorm(n_embd)` (`4,998,400` knobs — dropped `3,328` bias knobs).
+- **Measured val loss (1,000 steps, same 3,000-step LR schedule):** `0: 6.427 · 250: 3.168 · 500: 3.041 (best 🌟) · 750: 3.067 · 1000: 3.128`
+- **Quality:** Matches `LayerNorm` within normal batch noise (`3.168` vs `3.183` at step 250; `3.041` vs `3.013` at step 500; `3.067` vs `3.078` at step 750).
+- **Surprise Apple Silicon (`mps`) timing lesson:** Even though RMSNorm does less math on paper, a side-by-side 20-step benchmark on M4 (`torch 2.15.0`) measured **`419 ms/step` for `RMSNorm` vs `323 ms/step` for `LayerNorm`** (~30% slower on `mps`, and `458 ms` vs `195 ms` standalone), because Apple's MPS backend has a fused Metal kernel for `LayerNorm` but not yet for `RMSNorm`. Keeping `RMSNorm` for modern architecture parity with CUDA/Llama; `bf16` and `F.scaled_dot_product_attention` are next for speed.
+
+## 14. SwiGLU (replacing `GELU` MLP)
+
+- Replaced the 2-layer `GELU` MLP (`256 → 1024 → 256`) with Llama-style gated `SwiGLU` (`gate`, `up`, `down` with width `704`, no bias) — `5,089,024` (`~5.1M`) knobs.
+- **Measured val loss (750 steps, same 3,000-step LR schedule):** `0: 6.388 · 250: 3.162 · 500: 3.021 (best 🌟) · 750: 3.101` (`305 s` to step 500, same speed as RMSNorm + GELU's `304 s`).
+- **Before vs after SwiGLU:** Best step-250 score yet (`3.162`) and `0.020` lower at step 500 (`3.021` vs `3.041`), right at Tiny Shakespeare's `~3.01` data floor.
+
+## 15. `bf16` autocast (mixed precision)
+
+- Wrapped forward + eval in `torch.autocast(device_type=device, dtype=torch.bfloat16, enabled=use_bf16)` on GPU (`mps` / `cuda`), keeping master weights in `float32`.
+- **Measured val loss (750 steps, same 3,000-step LR schedule):** `0: 6.424 · 250: 3.152 · 500: 3.002 (best 🌟) · 750: 3.080`
+- **Before vs after `bf16`:**
+  - **Faster:** `262 s` to step 500 (vs `305 s` in `fp32`) and **`368 s` for 750 steps** (vs `487 s` — **~24% faster** on M4, and cuts activation memory in half!).
+  - **Best overall BPE score yet:** **`3.002`** at step 500 (zero quality loss from 16-bit scratchpad math).
+
+## 16. `F.scaled_dot_product_attention` (FlashAttention-ready) — Phase 1 complete ✅
+
+- Replaced the 4 manual attention lines + `self.mask` buffer with `F.scaled_dot_product_attention(q, k, v, dropout_p=attn_drop, is_causal=True)`.
+- **Apple MPS quirk:** PyTorch `mps` SDPA does not support non-zero `dropout_p`, so `tinygpt.py` uses `0.0` on `mps` (residual/MLP dropout stays on) and `dropout` on `cuda`/`cpu`.
+- **Measured val loss (750 steps, same 3,000-step LR schedule):** `0: 6.410 · 250: 3.159 (122 s) · 500: 3.086 (269 s, best 🌟) · 750: 3.213 (410 s)`
+- **Before vs after SDPA:**
+  - Slightly higher val loss (`3.086` vs `3.002` at step 500; `3.213` vs `3.080` at step 750) because `attn_drop = 0.0` meant slightly less regularization on tiny `511k`-token Shakespeare (so it overfit a touch sooner).
+  - Microbenchmark on M4 `mps` (`bf16`): manual attention was faster locally (`69 ms` vs `138 ms` at `T=128`; `1007 ms` vs `2067 ms` at `T=512`), end-to-end `410 s` vs `368 s` for 750 steps. Kept SDPA because it is cleaner, drops the `T × T` mask buffer, and automatically enables FlashAttention on NVIDIA CUDA in Phase 3/4.
+- **Phase 1 takeaway:** Hedwig now has the full modern Llama/nanochat building-block stack (BPE + RoPE + RMSNorm + SwiGLU + `bf16` + SDPA + checkpoint/resume + best-val saving). All five runs hit the exact same `~3.00–3.08` floor at step 500 because Tiny Shakespeare (`511k` tokens) is too small — time for Phase 2 (TinyStories + Gutenberg)!
