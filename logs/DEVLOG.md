@@ -57,3 +57,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **00:20** Use the rented machine's CUDA PyTorch instead of the Mac install list. (`02bfe92`)
   > MLX and Core ML are Mac-only, so a fresh pip install on RunPod would fail before any training started.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **00:35** Add the first RunPod screenshots to the cloud guide. (`576bc6d`)
+  > They show the rented A5000 while the small recipe is running, so the setup is visible when the project is shared.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
