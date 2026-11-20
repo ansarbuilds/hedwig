@@ -17,7 +17,8 @@
 # Usage:
 #   bash cloud_train.sh --dry-run   # Mac rehearsal: 2 steps in ./dry_run, real brains untouched
 #   bash cloud_train.sh             # rented GPU: 13.8M smoke test
-#   bash cloud_train.sh --124m      # rented GPU: 91.3M knobs, 20,000 steps, one read of 500 MB
+#   bash cloud_train.sh --124m      # rented GPU: 97.6M knobs, 8k vocab, 20k steps (~$0.65 on A40)
+#   bash cloud_train.sh --300m      # rented GPU: 286.7M flagship, 16k vocab, 512 context, 25k steps (~$3-$6)
 #   bash cloud_train.sh --fresh     # throw away checkpoints and prepared data, then start over
 # ==============================================================================
 set -euo pipefail
@@ -32,8 +33,9 @@ for arg in "$@"; do
   case "$arg" in
     --fresh)   FRESH=1 ;;
     --dry-run) DRY=1 ;;
-    --124m)    SCALE=1 ;;
-    *) echo "Unknown option: $arg" >&2; echo "Use: --dry-run, --124m, --fresh" >&2; exit 1 ;;
+    --124m)    SCALE=124 ;;
+    --300m)    SCALE=300 ;;
+    *) echo "Unknown option: $arg" >&2; echo "Use: --dry-run, --124m, --300m, --fresh" >&2; exit 1 ;;
   esac
 done
 
@@ -123,12 +125,49 @@ PY
   rm -rf "$tmp"
 }
 
-if [[ "$SCALE" -eq 1 && "$DRY" -eq 1 ]]; then
-  echo "Dry-run ignores --124m for the tiny rehearsal, and still checks that the scale-up edits work."
+# Prove the --300m flagship edits on a throwaway copy (286,663,680 knobs).
+check_300m_on_copy() {
+  local tmp
+  tmp="$(mktemp -d)"
+  cp "$ROOT/tinygpt.py" "$ROOT/prepare_data.py" "$ROOT/sft.py" "$ROOT/dpo.py" "$ROOT/tokenizer.py" "$ROOT/tokenizer.json" "$tmp/"
+  apply_patch "$tmp/tinygpt.py"      "block_size = 256"            "block_size = 512"
+  apply_patch "$tmp/tinygpt.py"      "n_embd     = 384"            "n_embd     = 1024"
+  apply_patch "$tmp/tinygpt.py"      "n_head     = 6"              "n_head     = 16"
+  apply_patch "$tmp/tinygpt.py"      "n_layer    = 6"              "n_layer    = 20"
+  apply_patch "$tmp/tinygpt.py"      "batch_size = 32"             "batch_size = 16"
+  apply_patch "$tmp/tinygpt.py"      "steps      = 3000"           "steps      = 25000"
+  apply_patch "$tmp/tinygpt.py"      "lr         = 1e-3"           "lr         = 6e-4"
+  apply_patch "$tmp/prepare_data.py" "vocab_size           = 4096" "vocab_size           = 16384"
+  apply_patch "$tmp/prepare_data.py" "tinystories_train_mb = 50"   "tinystories_train_mb = 500"
+  apply_patch "$tmp/prepare_data.py" "fineweb_edu_mb       = 0"    "fineweb_edu_mb       = 700"
+  apply_patch "$tmp/prepare_data.py" "bpe_sample_mb        = 4"    "bpe_sample_mb        = 8"
+  apply_patch "$tmp/sft.py"          "steps            = 750"      "steps            = 2500"
+  apply_patch "$tmp/sft.py"          "batch_size       = 32"       "batch_size       = 16"
+  apply_patch "$tmp/sft.py"          "train_mb         = 25"       "train_mb         = 50"
+  apply_patch "$tmp/sft.py"          "coedit_train_max = 0"        "coedit_train_max = 30000"
+  apply_patch "$tmp/sft.py"          "coedit_val_max   = 0"        "coedit_val_max   = 2500"
+  apply_patch "$tmp/dpo.py"          "batch_size = 16"             "batch_size = 8"
+  (cd "$tmp" && "$PY" - <<'PY'
+import prepare_data, tinygpt, sft, dpo
+tinygpt.vocab_size = prepare_data.vocab_size
+n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
+print(f"Flagship --300m check: n_embd={tinygpt.n_embd} n_head={tinygpt.n_head} n_layer={tinygpt.n_layer} block={tinygpt.block_size} vocab={tinygpt.vocab_size} steps={tinygpt.steps} coedit={sft.coedit_train_max} knobs={n:,}")
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size, tinygpt.vocab_size, tinygpt.steps) == (1024, 16, 20, 512, 16384, 25000)
+assert (prepare_data.tinystories_train_mb, prepare_data.fineweb_edu_mb, sft.coedit_train_max, dpo.batch_size) == (500, 700, 30000, 8)
+assert n == 286_663_680, n
+PY
+  )
+  rm -rf "$tmp"
+}
+
+if [[ "$SCALE" -ne 0 && "$DRY" -eq 1 ]]; then
+  echo "Dry-run ignores --124m/--300m for the tiny rehearsal, and still checks that both scale-up edits work."
   SCALE=0
   check_124m_on_copy
+  check_300m_on_copy
 elif [[ "$DRY" -eq 1 ]]; then
   check_124m_on_copy
+  check_300m_on_copy
 fi
 
 if [[ "$DRY" -eq 1 ]]; then
@@ -157,7 +196,7 @@ if [[ "$DRY" -eq 1 ]]; then
   apply_patch quantize.py "sft.reply(model, prompt)" "sft.reply(model, prompt, max_new_tokens=20)"
 fi
 
-if [[ "$SCALE" -eq 1 ]]; then
+if [[ "$SCALE" -eq 124 ]]; then
   echo "Scaling config to 12 layers, 768 wide, 8,192 vocab (~97.6M knobs), 20,000 pretrain steps."
   echo "Data mix: 350 MB TinyStories + 250 MB FineWeb-Edu (modern English) + 15,000 Grammarly CoEdIT grammar/tone pairs."
   echo "A bookmark is saved every 250 steps. Stop anytime and run the same command again to resume."
@@ -178,6 +217,35 @@ n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
 print(f"Scale-up is in effect: {n:,} knobs (vocab={tinygpt.vocab_size}, FineWeb-Edu={prepare_data.fineweb_edu_mb} MB, CoEdIT={sft.coedit_train_max:,} pairs)")
 assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.vocab_size, tinygpt.steps) == (768, 12, 12, 8192, 20000)
 assert n == 97_581_824, n
+PY
+elif [[ "$SCALE" -eq 300 ]]; then
+  echo "Scaling config to FLAGSHIP 20 layers, 1024 wide, 512 context, 16,384 vocab (~286.7M knobs), 25,000 pretrain steps."
+  echo "Data mix: 500 MB TinyStories + 700 MB FineWeb-Edu (modern English) + 30,000 Grammarly CoEdIT grammar/tone pairs."
+  echo "A bookmark is saved every 250 steps. Stop anytime and run the same command again to resume."
+  apply_patch tinygpt.py      "block_size = 256"            "block_size = 512"
+  apply_patch tinygpt.py      "n_embd     = 384"            "n_embd     = 1024"
+  apply_patch tinygpt.py      "n_head     = 6"              "n_head     = 16"
+  apply_patch tinygpt.py      "n_layer    = 6"              "n_layer    = 20"
+  apply_patch tinygpt.py      "batch_size = 32"             "batch_size = 16"
+  apply_patch tinygpt.py      "steps      = 3000"           "steps      = 25000"
+  apply_patch tinygpt.py      "lr         = 1e-3"           "lr         = 6e-4"
+  apply_patch prepare_data.py "vocab_size           = 4096" "vocab_size           = 16384"
+  apply_patch prepare_data.py "tinystories_train_mb = 50"   "tinystories_train_mb = 500"
+  apply_patch prepare_data.py "fineweb_edu_mb       = 0"    "fineweb_edu_mb       = 700"
+  apply_patch prepare_data.py "bpe_sample_mb        = 4"    "bpe_sample_mb        = 8"
+  apply_patch sft.py          "steps            = 750"      "steps            = 2500"
+  apply_patch sft.py          "batch_size       = 32"       "batch_size       = 16"
+  apply_patch sft.py          "train_mb         = 25"       "train_mb         = 50"
+  apply_patch sft.py          "coedit_train_max = 0"        "coedit_train_max = 30000"
+  apply_patch sft.py          "coedit_val_max   = 0"        "coedit_val_max   = 2500"
+  apply_patch dpo.py          "batch_size = 16"             "batch_size = 8"
+  "$PY" - <<'PY'
+import prepare_data, tinygpt, sft, dpo
+tinygpt.vocab_size = prepare_data.vocab_size
+n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
+print(f"Flagship --300m is in effect: {n:,} knobs (block={tinygpt.block_size}, vocab={tinygpt.vocab_size}, FineWeb-Edu={prepare_data.fineweb_edu_mb} MB, CoEdIT={sft.coedit_train_max:,} pairs)")
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size, tinygpt.vocab_size, tinygpt.steps) == (1024, 16, 20, 512, 16384, 25000)
+assert n == 286_663_680, n
 PY
 fi
 
