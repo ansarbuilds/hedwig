@@ -343,4 +343,20 @@ Reading curve on the A5000: `0: 8.470 · 250: 3.090 · 500: 2.730 · 750: 2.512 
 
 Lily sample from the rented taste brain: "Once upon a time, there was a little girl named Lily. She had long hair that she loved to brush every day. One day, she found her big key in the garden and picked it up with her hands."
 
-The copies are in `cloud_brains/` on the Mac only. They are a twin of the early Mac student. The main `brain.pt` is the later reader at **1.795**, from a partial pass over the full 1.92 GB file (stopped on purpose around step 12,500, because the rest of the ~20 hours does not help the bigger rented brain). Chat files `brain_chat.pt` and `brain_dpo.pt` were not retrained on that 1.795 reader. Screenshots: `docs/images/runpod-pod-running.png`, `docs/images/runpod-first-train.png`.
+The copies are in `cloud_brains/` on the Mac only. They are a twin of the early Mac student. The main `brain.pt` is the later reader at **1.795**, from a partial pass over the full 1.92 GB file (stopped on purpose around step 12,500, because the rest of the ~20 hours does not help the bigger rented brain). Screenshots: `docs/images/runpod-pod-running.png`, `docs/images/runpod-first-train.png`.
+
+## 32. Chat manners, story taste, and compression on the 1.795 reader (`sft.py` + `dpo.py` + `quantize.py`) ✅
+
+After the partial full-shelf read brought `brain.pt` down to **`1.795`**, we re-ran Stage 2 (`sft.py`), Stage 3 (`dpo.py`), and 8-bit/4-bit compression (`quantize.py`) from scratch on top of that stronger reader (backing up the 200 MB chat brains to `.bak` and clearing `ckpt_sft.pt` / `ckpt_dpo.pt`).
+
+| Stage | Previous (200 MB reader) | New (1.795 reader) |
+|---|---:|---:|
+| Stage 2 chat manners (`brain_chat.pt`) | `1.723` | **`1.438`** (best at step 450, 508 s) |
+| Stage 3 taste anchored loss (`brain_dpo.pt`) | `1.541 → 1.440` | **`1.422 → 1.297`** (156 s; peak win-rate **92.5%** at step 100, saved step 150 at **88.8%**) |
+| Stage 2 quantized (`16-bit / 8-bit / 4-bit`) | `1.7544 / 1.7547 / 1.7718` | **`1.4530 / 1.4531 / 1.4765`** |
+| Stage 3 quantized (`16-bit / 8-bit / 4-bit`) | `1.7637 / 1.7639 / 1.7827` | **`1.4666 / 1.4667 / 1.4897`** |
+
+Stage 2 curve: `0: 1.806 · 150: 1.493 · 300: 1.480 · 450: 1.438 (best) · 600: 1.465 · 750: 1.475`.
+Stage 3 curve: `0: 0.693 (1.422, 0.0%) · 50: 0.629 (1.363, 92.1%) · 100: 0.588 (1.332, 92.5%) · 150: 0.587 (1.297, 88.8%)`.
+
+Sample from the new `brain_dpo.pt` on `"Write a short story about a brave little owl and a golden key."`: *"Once upon a time, there was a wise owl named Hoot. He lived in the forest with his friends. One day, while he was flying by, he saw something shiny on the ground. It was a key! Hoot wanted to see what it could do..."*
