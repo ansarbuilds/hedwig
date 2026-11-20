@@ -67,3 +67,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **01:50** Sync all docs and visual guide to 1.795/1.438/1.297 scores; add video storyboard and next-steps board. (`bb93f65`)
 - **02:05** Add FineWeb-Edu modern English, 8192 vocab, and Grammarly CoEdIT grammar/tone pairs to --124m cloud pipeline. (`0779fa7`)
 - **16:07** Wire 97.6M Cloud Hedwig (Stories + Grammar, 8192 vocab) into app.py and log A40 results. (`c550a9b`)
+- **16:16** Add MIT LICENSE, Hugging Face uploader (upload_hf.py), and --300m Flagship (286.7M knobs, 512 context, 16k vocab) cloud pipeline. (`26e9dbd`)
