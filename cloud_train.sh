@@ -51,12 +51,27 @@ if command -v nvidia-smi >/dev/null 2>&1; then
   nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 fi
 
-if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
-  python3 -m venv "$ROOT/.venv"
-  "$ROOT/.venv/bin/pip" install --upgrade pip
-  "$ROOT/.venv/bin/pip" install -r "$ROOT/requirements.txt"
+if [[ "$DRY" -eq 1 ]]; then
+  # The Mac rehearsal uses the local toolbox, which includes MLX and Core ML.
+  if [[ ! -x "$ROOT/.venv/bin/python" ]]; then
+    python3 -m venv "$ROOT/.venv"
+    "$ROOT/.venv/bin/pip" install --upgrade pip
+    "$ROOT/.venv/bin/pip" install -r "$ROOT/requirements.txt"
+  fi
+  PY="$ROOT/.venv/bin/python"
+else
+  # The rented image already has a CUDA PyTorch. A fresh venv would try to
+  # install MLX, which only exists for the Mac, and the recipe would die immediately.
+  PY=python3
+  if ! "$PY" -c "import torch, numpy; assert torch.cuda.is_available()"; then
+    echo "This image's Python cannot see the GPU. Installing PyTorch into a venv..."
+    python3 -m venv "$ROOT/.venv"
+    "$ROOT/.venv/bin/pip" install --upgrade pip
+    "$ROOT/.venv/bin/pip" install "torch>=2.4" numpy
+    PY="$ROOT/.venv/bin/python"
+    "$PY" -c "import torch; assert torch.cuda.is_available(), 'PyTorch still cannot see the GPU'"
+  fi
 fi
-PY="$ROOT/.venv/bin/python"
 
 # Replace one exact setting. Stop if the line is missing, so a stale script
 # cannot pretend it scaled the model up and then train the small one.
