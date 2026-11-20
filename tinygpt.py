@@ -58,6 +58,7 @@ class CausalSelfAttention(nn.Module):
     """Multi-head causal self-attention with RoPE (no peeking ahead)."""
     def __init__(self):
         super().__init__()
+        self.n_head = n_head
         self.head_dim = n_embd // n_head
         self.qkv = nn.Linear(n_embd, 3 * n_embd)
         self.proj = nn.Linear(n_embd, n_embd)
@@ -70,9 +71,9 @@ class CausalSelfAttention(nn.Module):
     def forward(self, x, kv_cache=None, start_pos=0):
         B, T, C = x.shape
         q, k, v = self.qkv(x).split(C, dim=-1)
-        q = q.view(B, T, n_head, self.head_dim).transpose(1, 2)
-        k = k.view(B, T, n_head, self.head_dim).transpose(1, 2)
-        v = v.view(B, T, n_head, self.head_dim).transpose(1, 2)
+        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
+        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
+        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
         cos = self.cos[:, :, start_pos:start_pos + T]
         sin = self.sin[:, :, start_pos:start_pos + T]
         q, k = apply_rope(q, cos, sin), apply_rope(k, cos, sin)

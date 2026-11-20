@@ -360,3 +360,23 @@ Stage 2 curve: `0: 1.806 · 150: 1.493 · 300: 1.480 · 450: 1.438 (best) · 600
 Stage 3 curve: `0: 0.693 (1.422, 0.0%) · 50: 0.629 (1.363, 92.1%) · 100: 0.588 (1.332, 92.5%) · 150: 0.587 (1.297, 88.8%)`.
 
 Sample from the new `brain_dpo.pt` on `"Write a short story about a brave little owl and a golden key."`: *"Once upon a time, there was a wise owl named Hoot. He lived in the forest with his friends. One day, while he was flying by, he saw something shiny on the ground. It was a key! Hoot wanted to see what it could do..."*
+
+## 33. First 97.6M Cloud Hedwig — Stories + Modern English + Grammar (`bash cloud_train.sh --124m`) ✅
+
+Trained on RunPod **1× NVIDIA A40** (`48 GB VRAM`, **`$0.59/hr`**) in **~66 minutes (~$0.65 total)**. Upgraded to **97,581,824 knobs** (`12` layers, `768` wide, `12` heads, **`8,192`-piece BPE dictionary**) on **614 MB** of combined text (`366.7 MB` TinyStories + `262.1 MB` / `55,035` FineWeb-Edu modern English docs + 10 Gutenberg novels), followed by `30,930` mixed story + **Grammarly CoEdIT** (Apache-2.0) SFT pairs and `22,236` DPO pairs.
+
+| Stage | 14M Mac Hedwig | 97.6M Cloud Hedwig (A40) | Time on A40 |
+|---|---:|---:|---:|
+| Stage 1 reading (`brain.pt`) | `1.795` (4k vocab, stories only) | **`2.619`** (8k vocab, stories + FineWeb-Edu) | 57 min (20,000 steps) |
+| Stage 2 manners + grammar (`brain_chat.pt`) | `1.438` (stories only) | **`1.336`** (stories + 15k CoEdIT grammar) | 5.6 min (1,500 steps) |
+| Stage 3 taste (`brain_dpo.pt`) | `1.297` (92.5% peak win) | **`1.235`** (**96.7%** peak / **95.0%** saved) | 52 s (150 steps) |
+| 16-bit / 8-bit / 4-bit chat (`brain_chat`) | `27.8 / 14.0 / 7.9 MB` (`1.453 / 1.453 / 1.477`) | **`195.6 / 98.2 / 55.2 MB`** (`1.357 / 1.358 / 1.369`) | ~2 min |
+| 16-bit / 8-bit / 4-bit taste (`brain_dpo`) | `27.8 / 14.0 / 7.9 MB` (`1.467 / 1.467 / 1.490`) | **`195.6 / 98.2 / 55.2 MB`** (`1.400 / 1.400 / 1.412`) | ~2 min |
+
+**Real before/after proof on `"Write a story about a boy named Harry Potter."`:**
+- **14M Mac Hedwig:** Chopped `"Potter"` into `"pot"` + `"ter"`, ignored the name, defaulted to *Timmy*, and wrote about *potatoes and a big pot of soup*.
+- **97.6M Cloud Hedwig:** Kept **`Harry Potter`** and **`Harry`** through the entire story (*"Harry Potter was a small boy who liked to play outside. He had a red ball and he loved to kick it around the yard. One day, Harry saw something shiny in the grass..."*).
+
+**Real grammar test:** Recognized `Fix grammar:` / `Improve the grammar of this text:` and replied with a single edited sentence instead of a bedtime story (fixing `"I goes"` → `"I go"`), while still truncating or missing past-tense details on longer Teams messages — showing both that multi-task SFT works and why production work-grammar rewriting benefits from larger models.
+
+All 8 files (`brain*.pt` + 8,192-vocab `tokenizer.json`) live locally in `cloud_brains_97m/` (gitignored because 16-bit weights are 195.6 MB > GitHub's 100 MB limit) and are selectable side-by-side in `app.py`.
