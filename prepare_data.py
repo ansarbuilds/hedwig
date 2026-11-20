@@ -10,10 +10,11 @@ import numpy as np
 import tokenizer
 
 # ---- Settings ----
-vocab_size           = 4096   # 4k BPE pieces (fits cleanly in uint16)
+vocab_size           = 4096   # BPE pieces (4096 on Mac, 8192 on cloud --124m; fits cleanly in uint16)
 tinystories_train_mb = 50     # MB of TinyStories-train.txt to download (bump anytime up to 1924)
 tinystories_val_mb   = 10     # MB of TinyStories-valid.txt to download
-bpe_sample_mb        = 4      # MB of TinyStories mixed with all Gutenberg books to train BPE
+fineweb_edu_mb       = 0      # MB of modern English (FineWeb-Edu, ODC-By) to mix in (0 = stories only)
+bpe_sample_mb        = 4      # MB of text used to train the BPE tokenizer
 data_dir             = "data"
 gutenberg_dir        = "data/gutenberg"
 train_bin_path       = "data/train.bin"
@@ -22,6 +23,7 @@ tok_path             = "tokenizer.json"
 
 TINYSTORIES_TRAIN_URL = "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStories-train.txt"
 TINYSTORIES_VAL_URL   = "https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStories-valid.txt"
+FINEWEB_EDU_URL       = "https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle/resolve/main/shard_{:05d}.parquet"
 
 # Public-domain classic storybooks (pre-1929 Project Gutenberg via GITenberg mirror)
 GUTENBERG_BOOKS = [
@@ -91,6 +93,41 @@ def load_gutenberg_books():
         print(f"  ✓ Gutenberg {name:20s}: {len(clean)/1e3:6.1f} KB cleaned", flush=True)
     return "\n\n".join(train_parts), "\n\n".join(val_parts)
 
+def load_fineweb_edu(max_mb):
+    """Download clean modern English from FineWeb-Edu parquet shards (ODC-By license)."""
+    if max_mb <= 0:
+        return "", ""
+    import pyarrow.parquet as pq
+    target_bytes = int(max_mb * 1024 * 1024)
+    texts, total, shard_idx = [], 0, 0
+    while total < target_bytes:
+        shard_path = os.path.join(data_dir, f"fineweb_edu_{shard_idx:05d}.parquet")
+        if not os.path.exists(shard_path):
+            url = FINEWEB_EDU_URL.format(shard_idx)
+            print(f"  ↓ downloading FineWeb-Edu shard {shard_idx} -> {shard_path} ...", flush=True)
+            req = urllib.request.Request(url, headers={"User-Agent": "Hedwig/1.0"})
+            with urllib.request.urlopen(req, timeout=120) as resp, open(shard_path + ".tmp", "wb") as out:
+                while True:
+                    chunk = resp.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    out.write(chunk)
+            os.replace(shard_path + ".tmp", shard_path)
+        table = pq.read_table(shard_path, columns=["text"])
+        for doc in table.column("text").to_pylist():
+            if not doc:
+                continue
+            doc = doc.replace("\r\n", "\n").strip()
+            texts.append(doc)
+            total += len(doc) + 2
+            if total >= target_bytes:
+                break
+        shard_idx += 1
+    full = "\n\n".join(texts)
+    split = int(0.95 * len(full))
+    print(f"  ✓ FineWeb-Edu: {len(full)/1e6:.1f} MB modern English ({len(texts):,} docs)", flush=True)
+    return full[:split], full[split:]
+
 def main():
     t0 = time.time()
     os.makedirs(data_dir, exist_ok=True)
@@ -99,16 +136,21 @@ def main():
     ts_train = clean_tinystories(download_slice(TINYSTORIES_TRAIN_URL, "data/tinystories_train.txt", tinystories_train_mb))
     ts_val   = clean_tinystories(download_slice(TINYSTORIES_VAL_URL,   "data/tinystories_val.txt",   tinystories_val_mb))
 
-    print("\n2/4 Downloading public-domain Project Gutenberg novels...", flush=True)
+    print("\n2/4 Downloading public-domain Project Gutenberg novels (+ FineWeb-Edu if enabled)...", flush=True)
     gb_train, gb_val = load_gutenberg_books()
+    fw_train, fw_val = load_fineweb_edu(fineweb_edu_mb)
 
-    train_text = ts_train + "\n\n" + gb_train
-    val_text   = ts_val   + "\n\n" + gb_val
+    train_text = ts_train + "\n\n" + gb_train + (("\n\n" + fw_train) if fw_train else "")
+    val_text   = ts_val   + "\n\n" + gb_val   + (("\n\n" + fw_val)   if fw_val   else "")
     print(f"\nCombined corpus: train = {len(train_text)/1e6:.1f} MB | val = {len(val_text)/1e6:.1f} MB", flush=True)
 
     print(f"\n3/4 Training BPE tokenizer (vocab_size = {vocab_size})...", flush=True)
     sample_bytes = int(bpe_sample_mb * 1024 * 1024)
-    bpe_sample = ts_train[:sample_bytes] + "\n\n" + gb_train
+    if fw_train:
+        half = sample_bytes // 2
+        bpe_sample = ts_train[:half] + "\n\n" + fw_train[:half] + "\n\n" + gb_train
+    else:
+        bpe_sample = ts_train[:sample_bytes] + "\n\n" + gb_train
     merges, vocab = tokenizer.train(bpe_sample, vocab_size=vocab_size)
     tokenizer.save(merges, tok_path)
     print(f"  ✓ Saved {tok_path} ({len(vocab)} pieces)", flush=True)

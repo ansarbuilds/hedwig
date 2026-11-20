@@ -10,23 +10,27 @@ Run:   .venv/bin/python sft.py train                                    (fine-tu
        .venv/bin/python sft.py talk "Write a story about a little owl." (one-shot story request)
        .venv/bin/python sft.py chat                                     (interactive chat in terminal)
 """
-import os, re, sys, time, random, urllib.request
+import json, os, re, sys, time, random, urllib.request
 import torch, torch.nn.functional as F
 import tinygpt
 
 # ---- SFT Settings ----
-steps        = 750               # SFT needs far fewer steps than pretraining
-lr           = 2e-4              # gentle learning rate (5x smaller) so we don't forget English
-batch_size   = 32
-eval_every   = 150
-train_mb     = 25                # MB of TinyStories-Instruct-train.txt to download
-val_mb       = 4                 # MB of TinyStories-Instruct-valid.txt to download
-sft_cache    = "data/sft_cache.pt"
-chat_brain   = "brain_chat.pt"
-sft_ckpt     = "ckpt_sft.pt"
+steps            = 750               # SFT needs far fewer steps than pretraining
+lr               = 2e-4              # gentle learning rate (5x smaller) so we don't forget English
+batch_size       = 32
+eval_every       = 150
+train_mb         = 25                # MB of TinyStories-Instruct-train.txt to download
+val_mb           = 4                 # MB of TinyStories-Instruct-valid.txt to download
+coedit_train_max = 0                 # Grammarly CoEdIT (Apache-2.0) grammar/tone pairs to mix in (0 = stories only)
+coedit_val_max   = 0
+sft_cache        = "data/sft_cache.pt"
+chat_brain       = "brain_chat.pt"
+sft_ckpt         = "ckpt_sft.pt"
 
-TRAIN_URL = "https://huggingface.co/datasets/roneneldan/TinyStoriesInstruct/resolve/main/TinyStories-Instruct-train.txt"
-VAL_URL   = "https://huggingface.co/datasets/roneneldan/TinyStoriesInstruct/resolve/main/TinyStories-Instruct-valid.txt"
+TRAIN_URL        = "https://huggingface.co/datasets/roneneldan/TinyStoriesInstruct/resolve/main/TinyStories-Instruct-train.txt"
+VAL_URL          = "https://huggingface.co/datasets/roneneldan/TinyStoriesInstruct/resolve/main/TinyStories-Instruct-valid.txt"
+COEDIT_TRAIN_URL = "https://huggingface.co/datasets/grammarly/coedit/resolve/main/train.jsonl"
+COEDIT_VAL_URL   = "https://huggingface.co/datasets/grammarly/coedit/resolve/main/validation.jsonl"
 
 NOUNS = {
     "owl", "bird", "bear", "dog", "cat", "puppy", "kitty", "rabbit", "bunny", "fox", "mouse",
@@ -107,17 +111,78 @@ def parse_examples(raw_text, word_cache):
         ys.append(y[:B_T])
     return torch.tensor(xs, dtype=torch.long), torch.tensor(ys, dtype=torch.long)
 
+def download_file(url, path):
+    """Download a full file if not already cached on disk."""
+    if os.path.exists(path):
+        return open(path, encoding="utf-8", errors="ignore").read()
+    os.makedirs("data", exist_ok=True)
+    print(f"  ↓ downloading -> {path} ...", flush=True)
+    req = urllib.request.Request(url, headers={"User-Agent": "Hedwig/1.0"})
+    raw = urllib.request.urlopen(req, timeout=120).read().decode("utf-8", errors="ignore")
+    open(path, "w", encoding="utf-8").write(raw)
+    return raw
+
+def parse_coedit_examples(raw_jsonl, word_cache, max_items):
+    """Build (x, y) tensors from Grammarly CoEdIT (Apache-2.0) grammar & tone rewrites."""
+    B_T = tinygpt.block_size
+    xs, ys = [], []
+    lines = [ln for ln in raw_jsonl.splitlines() if ln.strip()]
+    rng = random.Random(42)
+    rng.shuffle(lines)
+    for idx, line in enumerate(lines):
+        if len(xs) >= max_items:
+            break
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        src = (rec.get("src") or "").strip()
+        tgt = (rec.get("tgt") or "").strip()
+        if not src or not tgt or src == tgt:
+            continue
+        # On 1/3 of grammar rows, also teach the short casual "Fix grammar: ..." phrasing
+        if idx % 3 == 0 and rec.get("task") == "gec" and ": " in src:
+            prompt = "Fix grammar: " + src.split(": ", 1)[1].strip()
+        else:
+            prompt = src
+        prefix_ids = tinygpt.tokenizer.encode(f"User: {prompt}\nHedwig: ", tinygpt.merges, word_cache)
+        answer_ids = tinygpt.tokenizer.encode(tgt + "\n\n", tinygpt.merges, word_cache)
+        full = prefix_ids + answer_ids
+        if len(full) > B_T + 1 or len(answer_ids) < 4:
+            continue
+        x = full[:-1] + [0] * (B_T - len(full) + 1)
+        y = ([-100] * (len(prefix_ids) - 1)) + answer_ids + ([-100] * (B_T - len(full) + 1))
+        xs.append(x[:B_T])
+        ys.append(y[:B_T])
+    if not xs:
+        return torch.empty((0, B_T), dtype=torch.long), torch.empty((0, B_T), dtype=torch.long)
+    return torch.tensor(xs, dtype=torch.long), torch.tensor(ys, dtype=torch.long)
+
 def load_sft_data():
-    """Load or build cached SFT instruction -> story tensors."""
+    """Load or build cached SFT instruction -> response tensors (stories + optional CoEdIT grammar)."""
     if os.path.exists(sft_cache):
         d = torch.load(sft_cache)
         return d["tr_x"], d["tr_y"], d["va_x"], d["va_y"]
-    print("Building SFT (User -> Hedwig) story dataset from TinyStories-Instruct...", flush=True)
+    print("Building SFT (User -> Hedwig) dataset...", flush=True)
     tr_raw = download_slice(TRAIN_URL, "data/sft_train.txt", train_mb)
     va_raw = download_slice(VAL_URL,   "data/sft_val.txt",   val_mb)
     word_cache = {}
     tr_x, tr_y = parse_examples(tr_raw, word_cache)
     va_x, va_y = parse_examples(va_raw, word_cache)
+    if coedit_train_max > 0:
+        print(f"  + mixing Grammarly CoEdIT grammar/tone pairs (up to {coedit_train_max:,} train)...", flush=True)
+        c_tr_raw = download_file(COEDIT_TRAIN_URL, "data/coedit_train.jsonl")
+        c_va_raw = download_file(COEDIT_VAL_URL,   "data/coedit_val.jsonl")
+        c_tr_x, c_tr_y = parse_coedit_examples(c_tr_raw, word_cache, coedit_train_max)
+        c_va_x, c_va_y = parse_coedit_examples(c_va_raw, word_cache, coedit_val_max or 1000)
+        print(f"  ✓ CoEdIT added {len(c_tr_x):,} train & {len(c_va_x):,} val grammar/tone pairs", flush=True)
+        tr_x, tr_y = torch.cat([tr_x, c_tr_x], dim=0), torch.cat([tr_y, c_tr_y], dim=0)
+        va_x, va_y = torch.cat([va_x, c_va_x], dim=0), torch.cat([va_y, c_va_y], dim=0)
+        g = torch.Generator().manual_seed(42)
+        p_tr = torch.randperm(len(tr_x), generator=g)
+        p_va = torch.randperm(len(va_x), generator=g)
+        tr_x, tr_y = tr_x[p_tr], tr_y[p_tr]
+        va_x, va_y = va_x[p_va], va_y[p_va]
     torch.save({"tr_x": tr_x, "tr_y": tr_y, "va_x": va_x, "va_y": va_y}, sft_cache)
     print(f"  ✓ Cached {len(tr_x):,} train pairs and {len(va_x):,} val pairs -> {sft_cache}", flush=True)
     return tr_x, tr_y, va_x, va_y

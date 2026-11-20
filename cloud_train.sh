@@ -67,9 +67,12 @@ else
     echo "This image's Python cannot see the GPU. Installing PyTorch into a venv..."
     python3 -m venv "$ROOT/.venv"
     "$ROOT/.venv/bin/pip" install --upgrade pip
-    "$ROOT/.venv/bin/pip" install "torch>=2.4" numpy
+    "$ROOT/.venv/bin/pip" install "torch>=2.4" numpy pyarrow
     PY="$ROOT/.venv/bin/python"
     "$PY" -c "import torch; assert torch.cuda.is_available(), 'PyTorch still cannot see the GPU'"
+  elif ! "$PY" -c "import pyarrow" >/dev/null 2>&1; then
+    echo "Installing pyarrow for FineWeb-Edu parquet shards..."
+    "$PY" -m pip install -q pyarrow
   fi
 fi
 
@@ -92,22 +95,29 @@ PY
 }
 
 # Prove the scale-up edits on a throwaway copy, then print the real knob count.
-# 91,286,272 is width 768, 12 heads, 12 layers, vocab 4,096, SwiGLU hidden 2048.
+# 97,581,824 is width 768, 12 heads, 12 layers, vocab 8,192, SwiGLU hidden 2048.
 check_124m_on_copy() {
   local tmp
   tmp="$(mktemp -d)"
-  cp "$ROOT/tinygpt.py" "$ROOT/prepare_data.py" "$ROOT/tokenizer.py" "$ROOT/tokenizer.json" "$tmp/"
+  cp "$ROOT/tinygpt.py" "$ROOT/prepare_data.py" "$ROOT/sft.py" "$ROOT/tokenizer.py" "$ROOT/tokenizer.json" "$tmp/"
   apply_patch "$tmp/tinygpt.py"      "n_embd     = 384" "n_embd     = 768"
   apply_patch "$tmp/tinygpt.py"      "n_head     = 6"   "n_head     = 12"
   apply_patch "$tmp/tinygpt.py"      "n_layer    = 6"   "n_layer    = 12"
   apply_patch "$tmp/tinygpt.py"      "steps      = 3000" "steps      = 20000"
-  apply_patch "$tmp/prepare_data.py" "tinystories_train_mb = 50" "tinystories_train_mb = 500"
+  apply_patch "$tmp/prepare_data.py" "vocab_size           = 4096" "vocab_size           = 8192"
+  apply_patch "$tmp/prepare_data.py" "tinystories_train_mb = 50"   "tinystories_train_mb = 350"
+  apply_patch "$tmp/prepare_data.py" "fineweb_edu_mb       = 0"    "fineweb_edu_mb       = 250"
+  apply_patch "$tmp/sft.py"          "steps            = 750"      "steps            = 1500"
+  apply_patch "$tmp/sft.py"          "coedit_train_max = 0"        "coedit_train_max = 15000"
+  apply_patch "$tmp/sft.py"          "coedit_val_max   = 0"        "coedit_val_max   = 2000"
   (cd "$tmp" && "$PY" - <<'PY'
-import tinygpt
+import prepare_data, tinygpt, sft
+tinygpt.vocab_size = prepare_data.vocab_size
 n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
-print(f"Scale-up check: n_embd={tinygpt.n_embd} n_head={tinygpt.n_head} n_layer={tinygpt.n_layer} steps={tinygpt.steps} knobs={n:,}")
-assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 20000)
-assert n == 91_286_272, n
+print(f"Scale-up check: n_embd={tinygpt.n_embd} n_head={tinygpt.n_head} n_layer={tinygpt.n_layer} vocab={tinygpt.vocab_size} steps={tinygpt.steps} coedit={sft.coedit_train_max} knobs={n:,}")
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.vocab_size, tinygpt.steps) == (768, 12, 12, 8192, 20000)
+assert (prepare_data.tinystories_train_mb, prepare_data.fineweb_edu_mb, sft.coedit_train_max) == (350, 250, 15000)
+assert n == 97_581_824, n
 PY
   )
   rm -rf "$tmp"
@@ -128,16 +138,19 @@ if [[ "$DRY" -eq 1 ]]; then
   cp "$ROOT/prepare_data.py" "$ROOT/tinygpt.py" "$ROOT/sft.py" "$ROOT/dpo.py" \
      "$ROOT/quantize.py" "$ROOT/tokenizer.py" "$ROOT/tokenizer.json" "$SANDBOX/"
   cd "$SANDBOX"
-  echo "Rehearsing inside $SANDBOX (2 steps, a few MB of stories). Real brains are not touched."
+  echo "Rehearsing inside $SANDBOX (2 steps, stories + FineWeb-Edu + CoEdIT grammar). Real brains are not touched."
   apply_patch prepare_data.py "tinystories_train_mb = 50" "tinystories_train_mb = 4"
   apply_patch prepare_data.py "tinystories_val_mb   = 10" "tinystories_val_mb   = 2"
+  apply_patch prepare_data.py "fineweb_edu_mb       = 0"  "fineweb_edu_mb       = 2"
   apply_patch prepare_data.py "bpe_sample_mb        = 4"  "bpe_sample_mb        = 2"
   apply_patch tinygpt.py "steps      = 3000" "steps      = 2"
   apply_patch tinygpt.py "ckpt_every = 250"  "ckpt_every = 1"
-  apply_patch sft.py "steps        = 750" "steps        = 2"
-  apply_patch sft.py "eval_every   = 150" "eval_every   = 1"
-  apply_patch sft.py "train_mb     = 25"  "train_mb     = 4"
-  apply_patch sft.py "val_mb       = 4"   "val_mb       = 2"
+  apply_patch sft.py "steps            = 750" "steps            = 2"
+  apply_patch sft.py "eval_every       = 150" "eval_every       = 1"
+  apply_patch sft.py "train_mb         = 25"  "train_mb         = 4"
+  apply_patch sft.py "val_mb           = 4"   "val_mb           = 2"
+  apply_patch sft.py "coedit_train_max = 0"   "coedit_train_max = 500"
+  apply_patch sft.py "coedit_val_max   = 0"   "coedit_val_max   = 100"
   apply_patch dpo.py "steps      = 150" "steps      = 2"
   apply_patch dpo.py "eval_every = 50"  "eval_every = 1"
   apply_patch quantize.py "n_batches=30" "n_batches=2"
@@ -145,21 +158,26 @@ if [[ "$DRY" -eq 1 ]]; then
 fi
 
 if [[ "$SCALE" -eq 1 ]]; then
-  echo "Scaling config to 12 layers, 768 wide, 20,000 pretrain steps, 500 MB of TinyStories."
-  echo "Picture a student with 91 million switches. The Mac brain had 14 million switches and read about 2 word-pieces per switch (3,000 steps). 20,000 steps gives this student the same 2 pieces per switch: about 164 million pieces, one pass through the 500 MB pile."
-  echo "A bookmark is saved every 250 steps. If the bill climbs past what you want to spend, stop the script. The best brain so far stays on disk. Run the same command again later and it continues from the bookmark."
-  echo "The chat lessons stay short (750 manners steps, 150 taste steps) because they use the same 13,852 story requests as the Mac."
+  echo "Scaling config to 12 layers, 768 wide, 8,192 vocab (~97.6M knobs), 20,000 pretrain steps."
+  echo "Data mix: 350 MB TinyStories + 250 MB FineWeb-Edu (modern English) + 15,000 Grammarly CoEdIT grammar/tone pairs."
+  echo "A bookmark is saved every 250 steps. Stop anytime and run the same command again to resume."
   apply_patch tinygpt.py      "n_embd     = 384" "n_embd     = 768"
   apply_patch tinygpt.py      "n_head     = 6"   "n_head     = 12"
   apply_patch tinygpt.py      "n_layer    = 6"   "n_layer    = 12"
   apply_patch tinygpt.py      "steps      = 3000" "steps      = 20000"
-  apply_patch prepare_data.py "tinystories_train_mb = 50" "tinystories_train_mb = 500"
+  apply_patch prepare_data.py "vocab_size           = 4096" "vocab_size           = 8192"
+  apply_patch prepare_data.py "tinystories_train_mb = 50"   "tinystories_train_mb = 350"
+  apply_patch prepare_data.py "fineweb_edu_mb       = 0"    "fineweb_edu_mb       = 250"
+  apply_patch sft.py          "steps            = 750"      "steps            = 1500"
+  apply_patch sft.py          "coedit_train_max = 0"        "coedit_train_max = 15000"
+  apply_patch sft.py          "coedit_val_max   = 0"        "coedit_val_max   = 2000"
   "$PY" - <<'PY'
-import tinygpt
+import prepare_data, tinygpt, sft
+tinygpt.vocab_size = prepare_data.vocab_size
 n = sum(p.numel() for p in tinygpt.TinyGPT().parameters())
-print(f"Scale-up is in effect: {n:,} knobs")
-assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.steps) == (768, 12, 12, 20000)
-assert n == 91_286_272, n
+print(f"Scale-up is in effect: {n:,} knobs (vocab={tinygpt.vocab_size}, FineWeb-Edu={prepare_data.fineweb_edu_mb} MB, CoEdIT={sft.coedit_train_max:,} pairs)")
+assert (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.vocab_size, tinygpt.steps) == (768, 12, 12, 8192, 20000)
+assert n == 97_581_824, n
 PY
 fi
 
@@ -171,17 +189,17 @@ if [[ "$FRESH" -eq 1 ]]; then
   rm -f data/sft_cache.pt data/dpo_cache.pt data/sft_train.txt data/sft_val.txt
 fi
 
-# The stamp is the download size written into prepare_data.py. Same size on a
+# The stamp records vocab + download sizes written into prepare_data.py. Same stamp on a
 # second launch means the .bin files are already done, so we do not rebuild them.
 prepare_if_needed() {
   local want
-  want="$("$PY" -c 'import prepare_data; print(prepare_data.tinystories_train_mb)')"
+  want="$("$PY" -c 'import prepare_data; print(f"v{prepare_data.vocab_size}_ts{prepare_data.tinystories_train_mb}_fw{prepare_data.fineweb_edu_mb}")')"
   if [[ -f data/train.bin && -f data/val.bin && -f data/prepare_stamp.txt ]] \
      && [[ "$(cat data/prepare_stamp.txt)" == "$want" ]]; then
-    echo "Stories already prepared (TinyStories train slice = ${want} MB). Skipping download. Use --fresh to redo."
+    echo "Stories already prepared (${want}). Skipping download. Use --fresh to redo."
     return
   fi
-  echo "Preparing stories (TinyStories train slice = ${want} MB)..."
+  echo "Preparing corpus (${want})..."
   rm -f data/prepare_stamp.txt data/train.bin data/val.bin
   rm -f data/tinystories_train.txt data/tinystories_val.txt
   "$PY" -u prepare_data.py
@@ -220,6 +238,6 @@ if [[ "$DRY" -eq 1 ]]; then
   echo "Dry-run passed. Sandbox is $SANDBOX. The real brains in $ROOT were not changed."
 fi
 
-echo "✅ All done. Copy the brains back to the Mac BEFORE stopping the machine:"
-echo "   scp -P <port> root@<host>:~/hedwig/brain*.pt ./"
-echo "A 12-layer brain is about 180 MB in 16-bit. Do not git commit it (GitHub's limit is 100 MB)."
+echo "✅ All done. Copy the brains AND tokenizer.json back to the Mac BEFORE stopping the machine:"
+echo "   scp -P <port> root@<host>:~/hedwig/brain*.pt root@<host>:~/hedwig/tokenizer.json ./"
+echo "A 12-layer brain is about 195 MB in 16-bit (~50 MB in 4-bit). Do not git commit >100 MB files."
