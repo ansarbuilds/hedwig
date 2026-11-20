@@ -64,3 +64,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > The A5000 reran the 50 MB lesson in 135 seconds at val 2.100, matching the Mac's first 2.080, and the notes say not to replace the better 1.795 Mac reader with those copies.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
 - **01:15** Retrain chat SFT, DPO, and quantized brains on the 1.795 English reader. (`7b91dbe`)
+- **01:50** Sync all docs and visual guide to 1.795/1.438/1.297 scores; add video storyboard and next-steps board. (`bb93f65`)
