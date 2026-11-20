@@ -60,3 +60,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **00:35** Add the first RunPod screenshots to the cloud guide. (`576bc6d`)
   > They show the rented A5000 while the small recipe is running, so the setup is visible when the project is shared.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+- **00:52** Document the RunPod smoke test so the next session can continue from the real scores. (`084d644`)
+  > The A5000 reran the 50 MB lesson in 135 seconds at val 2.100, matching the Mac's first 2.080, and the notes say not to replace the better 1.795 Mac reader with those copies.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
