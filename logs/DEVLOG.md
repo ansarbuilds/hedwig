@@ -65,3 +65,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > Co-authored-by: Cursor <cursoragent@cursor.com>
 - **01:15** Retrain chat SFT, DPO, and quantized brains on the 1.795 English reader. (`7b91dbe`)
 - **01:50** Sync all docs and visual guide to 1.795/1.438/1.297 scores; add video storyboard and next-steps board. (`bb93f65`)
+- **02:05** Add FineWeb-Edu modern English, 8192 vocab, and Grammarly CoEdIT grammar/tone pairs to --124m cloud pipeline. (`0779fa7`)
