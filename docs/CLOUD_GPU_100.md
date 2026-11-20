@@ -37,6 +37,16 @@ Tip: debug everything on the Mac or a cheap GPU first. Only rent 8×H100 when th
 - [ ] Timer/alarm set to stop the machine
 - [ ] Machine **terminated**, storage deleted, dashboard shows $0/hr
 
+## What the first hour looks like
+
+The pod list while the small recipe is running on one RTX A5000 ($0.28/hour). The green dot means the rented computer is on. The meter stays on until you press Stop.
+
+![RunPod pod running](images/runpod-pod-running.png)
+
+The black window after the project has downloaded and `bash cloud_train.sh` has started. It is fetching the children's stories and the public-domain novels. The password was typed at the prompt and does not appear in the picture.
+
+![First cloud training log](images/runpod-first-train.png)
+
 ## Useful commands
 ```bash
 # on the Mac, before spending anything (writes only inside dry_run/)
