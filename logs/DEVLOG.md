@@ -52,3 +52,8 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **16:59** Save the English reader after a partial pass over the full story shelf. (`af4a36e`)
   > The quiz score reached 1.795 before the long run was stopped, and more_english.py can resume a full TinyStories read from a bookmark.
   > Co-authored-by: Cursor <cursoragent@cursor.com>
+
+## 2026-11-20
+- **00:20** Use the rented machine's CUDA PyTorch instead of the Mac install list. (`02bfe92`)
+  > MLX and Core ML are Mac-only, so a fresh pip install on RunPod would fail before any training started.
+  > Co-authored-by: Cursor <cursoragent@cursor.com>
