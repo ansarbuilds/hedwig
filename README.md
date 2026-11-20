@@ -4,11 +4,11 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
 
 ## Progress so far (all trained on a MacBook Air M4 for $0)
 - **v1 (Phase 0):** 4.8M-parameter character-level Transformer on Tiny Shakespeare (~16 min, loss `1.481`).
-- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer. Reading score on the same test pages: `2.080` after 50 MB, `2.010` after 200 MB, **`1.795`** after a partial read of the full TinyStories file (that long run was stopped on purpose). `brain.pt` is the 1.795 reader. Chat manners **`1.723`** are from the 200 MB lesson and were not redone after 1.795.
+- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer. Reading score on the same test pages: `2.080` after 50 MB, `2.010` after 200 MB, **`1.795`** after a partial read of the full TinyStories file (stopped on purpose). `brain.pt` is the 1.795 reader.
 - **v3 (Phase 2.5 — Stage 2 SFT + Stage 3 DPO + 8-bit/4-bit Quantization + Mac UI):**
-  - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.723`** after the extra reading, was `1.7544`).
-  - **Stage 3 DPO (`dpo.py`):** Preference tuning on the same pairs. Peak win-rate **`92.5%`** (step 50); the saved brain is step 150 at **`90.4%`** because the fluency-anchored score was still falling.
-  - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, loss `1.7547`)** and **4-bit (`7.9 MB`, loss `1.7718`)**, accelerated with **KV Cache (`89 tok/s`, `1.89×` faster)** + Top-k + repetition penalty, and served in an offline Mac web UI (`app.py`) with live word-by-word streaming and clickable **🔬 Brain X-Ray**.
+  - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs on top of the `1.795` reader (response loss **`1.438`**, down from `1.723` / `1.7544`).
+  - **Stage 3 DPO (`dpo.py`):** Preference tuning on the same pairs. Anchored taste score dropped **`1.422 → 1.297`** (was `1.440`); peak win-rate **`92.5%`** (step 100), saved step 150 at **`88.8%`**.
+  - **Quantization & UI (`quantize.py`, `app.py`):** Quantized from scratch to **8-bit (`14.0 MB`, chat `1.4531` / taste `1.4667`)** and **4-bit (`7.9 MB`, chat `1.4765` / taste `1.4897`)**, accelerated with **KV Cache (`89 tok/s`, `1.89×` faster)** + Top-k + repetition penalty, and served in an offline Mac web UI (`app.py`) with live word-by-word streaming and clickable **🔬 Brain X-Ray**.
 - **v4 (Stretch Goals Complete on Mac for $0):**
   - **Mixture-of-Experts (`moe.py`):** 8 specialist experts, top-2 routing (`26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
   - **Knowledge Distillation (`distill.py`):** `13.8M` Teacher → `3.4M` **🐣 Baby Hedwig** Student (`brain_baby.pt`, `6.8 MB`, loss `7.602 → 2.521`).
@@ -39,10 +39,9 @@ python3.12 -m venv .venv
 .venv/bin/python tinygpt.py train                                    # Stage 1 pretraining
 .venv/bin/python sft.py train                                        # Stage 2 SFT ("chat manners")
 .venv/bin/python dpo.py train                                        # Stage 3 DPO ("preference & taste")
-.venv/bin/python export_iphone.py                                    # export mobile model + SwiftUI template (`iphone/`)
+.venv/bin/python export_iphone.py                                    # Core ML brain + Swift app for Xcode
 .venv/bin/python ssd_runner.py                                       # one layer at a time from SSD vs all-in-RAM
-.venv/bin/python mlx_bench.py                                    # MLX vs PyTorch speed on the same 13.8M brain
-.venv/bin/python export_iphone.py                                # Core ML brain + Swift app for Xcode
+.venv/bin/python mlx_bench.py                                        # MLX vs PyTorch speed on the same 13.8M brain
 .venv/bin/python lang_hedwig.py talk "Il était une fois un petit hibou "
 bash cloud_train.sh --dry-run                                        # 2-step rehearsal in dry_run/ (does not touch real brains)
 bash cloud_train.sh                                                  # rented GPU: full pipeline (or `--124m` for the 91.3M brain)
@@ -69,19 +68,21 @@ bash cloud_train.sh                                                  # rented GP
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
-| `brain.pt` | Stage 1 pretrained storyteller weights (`27.8 MB` in `bfloat16`, val loss `2.080`) |
-| `brain_chat.pt` | Stage 2 SFT chat weights (`27.8 MB` in `bfloat16`, response loss `1.7544`) |
-| `brain_dpo.pt` | Stage 3 DPO preference-tuned weights (`27.8 MB` in `bfloat16`, `91.7%` preference win-rate) |
-| `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.7547`) |
-| `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.7718`) |
-| `brain_dpo_int8.pt` | 8-bit Stage 3 taste brain (`14.0 MB`, response loss `1.7639`) |
-| `brain_dpo_int4.pt` | 4-bit Stage 3 taste brain (`7.9 MB`, response loss `1.7827`) |
+| `brain.pt` | Stage 1 pretrained storyteller weights (`27.8 MB` in `bfloat16`, val loss `1.795`) |
+| `brain_chat.pt` | Stage 2 SFT chat weights (`27.8 MB` in `bfloat16`, response loss `1.438`) |
+| `brain_dpo.pt` | Stage 3 DPO preference-tuned weights (`27.8 MB` in `bfloat16`, anchored loss `1.297`, `92.5%` peak win-rate) |
+| `brain_chat_int8.pt` | 8-bit quantized chat weights (`14.0 MB`, `3.96×` smaller, response loss `1.4531`) |
+| `brain_chat_int4.pt` | 4-bit quantized chat weights (`7.9 MB`, `7.05×` smaller, response loss `1.4765`) |
+| `brain_dpo_int8.pt` | 8-bit Stage 3 taste brain (`14.0 MB`, response loss `1.4667`) |
+| `brain_dpo_int4.pt` | 4-bit Stage 3 taste brain (`7.9 MB`, response loss `1.4897`) |
 | `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
-| `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5 & Stage 1–3 measured curves |
-| `docs/LEARNINGS.md` | Concepts and 24 sections of measured results |
+| `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5, Stage 1–3, Mac benchmarks, and RunPod results |
+| `docs/LEARNINGS.md` | Concepts and 32 sections of measured results |
 | `docs/ROADMAP.md` | Complete project plan & stretch checklist |
-| `docs/CLOUD_GPU_100.md` | Dec 2026 $100 cloud GPU guide & safety checklist |
+| `docs/CLOUD_GPU_100.md` | Cloud GPU guide, RunPod smoke test results, & safety checklist |
+| `docs/VIDEO_SCRIPT.md` | Full narrative video / case-study storyboard & B-roll checklist |
+| `docs/images/hedwig-next-steps-board.png` | Visual roadmap board: where we are, why scale up, budget, uses & open-source plan |
 | `logs/DEVLOG.md` | Automatic daily dev log (updated on push) |
 | `AGENTS.md` | Context for AI coding assistants |
 

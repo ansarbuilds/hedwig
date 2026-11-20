@@ -20,14 +20,14 @@ Budget: **~$100 of cloud GPU time** for learning. Everything else runs on the Ma
 - [x] Download **TinyStories** from Hugging Face (`roneneldan/TinyStories` — `52.4 MB` train + `10.5 MB` val)
 - [x] Download a subset of **Project Gutenberg** (10 public-domain pre-1929 storybooks: *Alice*, *Looking-Glass*, *Wizard of Oz*, *Peter Pan*, *Grimm*, *Andersen*, *Jungle Book*, *Treasure Island*, *Sherlock Holmes*, *Time Machine* — `~3.0 MB` cleaned)
 - [x] Write `prepare_data.py`: clean → train 4,096-vocab BPE (`3.87` chars/token) → save as `uint16` `.bin` shards (`14.1M` train tokens in `data/train.bin`, `2.7M` val tokens in `data/val.bin`)
-- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.080`, then `more_english.py` on 200 MB of stories → **`2.010`**). Chat manners refreshed to **`1.723`**.
+- [x] Train a ~10–30M model (`13.8M` params) on TinyStories + Gutenberg on the Air (`8.501 → 2.080`, then `more_english.py` on 200 MB → `2.010`, then partial full-shelf read → **`1.795`**). Chat manners refreshed to **`1.438`**, taste anchored loss **`1.297`**.
 
-## Phase 2.5: Full ChatGPT pipeline & shipping on Mac (Air, $0 — Done ✅ / In Progress)
-Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and proved the entire post-training & shipping stack locally on the 13.8M model first:
-- [x] **Stage 2 — SFT ("Chat Manners", `sft.py`)**: `13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking (`brain_chat.pt`, `27.8 MB` `bf16`, response loss `2.077 → 1.7544`, interactive `sft.py chat`)
-- [x] **8-bit & 4-bit Quantization (`quantize.py`)**: manners brain `1.7544 → 1.7547 (8-bit) → 1.7718 (4-bit)`; taste brain `1.7637 → 1.7639 (8-bit) → 1.7827 (4-bit)` (`brain_dpo_int8.pt`, `brain_dpo_int4.pt`)
+## Phase 2.5: Full ChatGPT pipeline & shipping on Mac (Air, $0 — Done ✅)
+Since the cloud GPU run was planned for later, we built and proved the entire post-training & shipping stack locally on the 13.8M model first:
+- [x] **Stage 2 — SFT ("Chat Manners", `sft.py`)**: `13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking (`brain_chat.pt`, `27.8 MB` `bf16`, response loss `1.806 → 1.438` on the `1.795` reader, interactive `sft.py chat`)
+- [x] **8-bit & 4-bit Quantization (`quantize.py`)**: manners brain `1.4530 → 1.4531 (8-bit) → 1.4765 (4-bit)`; taste brain `1.4666 → 1.4667 (8-bit) → 1.4897 (4-bit)` (`brain_dpo_int8.pt`, `brain_dpo_int4.pt`)
 - [x] **Offline Mac Chat UI (`app.py`)**: Zero-dependency web UI at `http://127.0.0.1:8000` with live Stage 3 DPO / Stage 2 SFT / 8-bit / 4-bit / Stage 1 brain switching
-- [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 91.7%` preference win-rate in 100 steps; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
+- [x] **Stage 3 — DPO / Preference Tuning (`dpo.py`, $0 on Mac)**: Trained on `13,852` chosen 👍 vs rejected 👎 story pairs (`0% → 92.5%` peak win-rate at step 100; anchored loss `1.422 → 1.297`; caught and fixed DPO "reward hacking" with an SFT fluency anchor; saved `brain_dpo.pt` at `27.8 MB` — **all 3 ChatGPT stages complete locally!**)
 - [x] **Refresh `how-hedwig-learns.html` ($0)**: Updated the interactive visual field guide with real Phase 1–5 & Stage 1–3 measurements
 - [x] **Prepare 1-command Cloud GPU script (`cloud_train.sh`, $0)**: Turnkey script, rehearsed with `--dry-run`. `--124m` builds 91,286,272 knobs.
 
@@ -45,7 +45,7 @@ See `docs/CLOUD_GPU_100.md`.
 - [ ] Download cloud weights and compare against the local 13.8M model in `app.py`
 
 ## Phase 5: Ship it ($0)
-- [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.7544 → 1.7547 → 1.7718`, taste `1.7637 → 1.7639 → 1.7827`
+- [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.4530 → 1.4531 → 1.4765`, taste `1.4666 → 1.4667 → 1.4897`
 - [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
 - [x] Convert to mobile / Xcode bundle (`export_iphone.py` → Core ML `iphone/Hedwig.mlpackage`, 27.7 MB, **30/30** greedy pieces match PyTorch; Swift tokenizer matches Python; Xcode clicks in `ios/HedwigApp.swift`)
 - [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup
