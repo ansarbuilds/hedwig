@@ -6,8 +6,8 @@ Hedwig is a learning project: build a ChatGPT-style language model from scratch,
 Long-term goal: a focused **storytelling** model that runs offline on a 16 GB MacBook Air M4 and an iPhone.
 
 ## Current state
-- `tinygpt.py`: Stage 1 modern BPE-based GPT (4,096 vocab) with RoPE + RMSNorm + SwiGLU + bf16 autocast + `F.scaled_dot_product_attention`, ~13.8M params. After `more_english.py` (200 MB TinyStories, same dictionary), val loss **`2.010`** on the original test pages (was `2.080`). `.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "`
-- `more_english.py`: extra English reading from `brain.pt` on `data/train_more.bin` (54M pieces), then refreshes SFT and DPO. Chat score **`1.723`** (was `1.754`). `.venv/bin/python more_english.py`
+- `tinygpt.py`: Stage 1 modern BPE-based GPT (4,096 vocab) with RoPE + RMSNorm + SwiGLU + bf16 autocast + `F.scaled_dot_product_attention`, ~13.8M params. `brain.pt` val loss **`1.795`** on the original `data/val.bin` (50 MB run was `2.080`, 200 MB run was `2.010`, then a partial read of the full 1.92 GB TinyStories file reached `1.795` at step 12,250 and was stopped on purpose). `.venv/bin/python tinygpt.py talk "Once upon a time, a little owl "`
+- `more_english.py`: extra English reading. `python more_english.py` is the finished 200 MB run. `python more_english.py full` reads the whole TinyStories file (`data/train_full.bin`, 489M pieces, 59,682 steps, ~20 h). That full run was **stopped around step 12,500**. Bookmark is `ckpt_full.pt` (local, gitignored). Do not restart it unless the owner asks. Chat SFT/DPO were **not** re-run on the 1.795 reader, so `brain_chat.pt` / `brain_dpo.pt` are still the 200 MB chat brains (manners **`1.723`**, taste win-rate **90.4%** saved / **92.5%** peak).
 - `sft.py`: Stage 2 Supervised Fine-Tuning (`13,852` instruction → story pairs from `TinyStories-Instruct` with `-100` prompt loss masking) + interactive chat. `.venv/bin/python sft.py train` / `.venv/bin/python sft.py talk "Write a story..."` / `.venv/bin/python sft.py chat`
 - `dpo.py`: Stage 3 Direct Preference Optimization (`13,852` chosen 👍 vs rejected 👎 pairs with fluency anchor; `0% → 91.7%` win-rate in 100 steps). `.venv/bin/python dpo.py train` / `.venv/bin/python dpo.py talk "Write a short story about dragon and castle."`
 - `moe.py`: Mixture-of-Experts Hedwig (`26.2M` total / `11.6M` active params, 8 experts top-2, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
@@ -40,12 +40,16 @@ Long-term goal: a focused **storytelling** model that runs offline on a 16 GB Ma
 - Don't commit files >100 MB (GitHub limit). Large weights go to Hugging Face. Datasets go in `data/` and are gitignored except the small Shakespeare file.
 - Training data must be legally usable: public domain (Project Gutenberg), permissive datasets (TinyStories, FineWeb-Edu), or permissively licensed open teacher models (Qwen/Mistral Apache-2.0, DeepSeek MIT). Never train on outputs of OpenAI/Anthropic/Google models.
 
-## Next tasks (see `docs/ROADMAP.md`)
-### All core $0 MacBook Air milestones are complete ✅!
-### Optional $0 Mac experiments (anytime before Dec 2026):
-1. ~~Layer-by-layer SSD loading~~ ✅ (`ssd_runner.py`: `52.9 → 18.8 MB` weights in RAM, `108 → 33 tok/s`).
-2. ~~Apple MLX vs PyTorch MPS~~ ✅ (`mlx_bench.py`: practice `596 → 99 ms`, generation `635 → 832 tok/s`, same story).
-3. ~~Low-resource / second-language Hedwig~~ ✅ (`lang_hedwig.py`, French, val `7.776 → 3.541`).
+## How to talk to the owner
+- Explain in plain words, with a concrete example from Hedwig's own stories (Lily, a key, an owl, TinyStories). The owner got lost when explanations used a kitchen metaphor. Do not use that metaphor.
+- When comparing scale, say it directly: Hedwig is **14 million** knobs. GPT-2 small (2019) is about **124 million**. GPT-3 is about **175 billion**. ChatGPT has read a huge slice of the web. Hedwig has read children's stories and 10 public-domain novels.
+- The iPhone export exists, but the owner said to leave the phone and focus on English.
+- Do not overwrite `brain.pt`, `brain_chat.pt`, or `brain_dpo.pt` with anything in `cloud_brains/`. Those rented-computer files are a fresh 50 MB training (val **2.100**), which is a worse quiz score than the Mac reader (**1.795**).
 
-### Next month (Dec 2026 — $15–100 cloud GPU budget, see `docs/CLOUD_GPU_100.md`):
-1. **Phase 3 & 4 Cloud Run**: Rent 1× GPU (~$2 smoke test with `bash cloud_train.sh`), then run `bash cloud_train.sh --124m` (91,286,272 knobs, 500 MB of stories). Local `--dry-run` already passed.
+## Next tasks (see `docs/ROADMAP.md`)
+### Mac experiments done
+SSD loading, MLX speed test, French Hedwig, Core ML iPhone export, 200 MB extra English, and a partial full-shelf read (stopped on purpose at val **1.795**).
+
+### Rented GPU
+1. ~~Smoke test~~ ✅ 20 Nov 2026, RunPod pod `gleaming_olive_hippopotamus`, 1× RTX A5000, **$0.28/hr**, about **$0.10** spent, balance left **$14.90**. Pod was stopped (`$0.00/hr`). `bash cloud_train.sh` on the 50 MB pile: pretrain **8.470 → 2.100 in 135 s** (Mac's first 3,000 steps took ~59 min and reached 2.080), SFT **2.073 → 1.758 in 81 s**, DPO **0% → 91.7% in 23 s**. Copies are local only, in `cloud_brains/` (gitignored). Screenshots: `docs/images/`.
+2. **Not started:** `bash cloud_train.sh --124m` (91,286,272 knobs, 20,000 steps, 500 MB). Do this only when the owner asks. It trains a new brain from scratch. It does not continue `brain.pt`.

@@ -328,3 +328,19 @@ The first English brain had read about **50 MB** of TinyStories (plus 10 novels)
 The reading curve: `0: 2.080 · 250: 2.105 · 500: 2.090 · 750: 2.040 · 1000: 2.038 · 1250: 2.045 · 1500: 2.010 · 1750: 2.030 · 2000: 2.046`. It got a little worse at first (the new stories tugged the knobs), then beat the old score. The train pile is **54.0M** pieces, up from **14.1M**.
 
 Asked for an owl in a tree, the new taste brain wrote a full little story. Names still wander (Tweet, then Spark, then Sparky), which is the same small-brain habit, but the score on held-out stories is lower, which means closer to the real TinyStories pages. Previous chat files are in `brain_chat.pt.bak` and `brain_dpo.pt.bak` if you want the old ones back. Run `.venv/bin/python more_english.py` to resume; it will not rebuild the 200 MB file.
+
+## 31. First rented GPU (`bash cloud_train.sh` on RunPod) ✅
+
+One RTX A5000, **$0.28/hr**, about **$0.10** spent, balance left **$14.90**. The pod was stopped and the page showed **$0.00/hr**. This trained a **new** 13.8M brain from scratch on the **50 MB** TinyStories pile plus the 10 novels. It did not continue the Mac's `brain.pt`.
+
+| | Mac, first 50 MB lesson | Rented A5000, same 50 MB lesson |
+|---|---|---|
+| Reading quiz | 8.501 → **2.080** in ~59 min | 8.470 → **2.100** in **135 s** |
+| Manners | **1.754** (later 1.723 after more stories) | **1.758** in 81 s |
+| Taste win-rate | **91.7%** | **91.7%** in 23 s |
+
+Reading curve on the A5000: `0: 8.470 · 250: 3.090 · 500: 2.730 · 750: 2.512 · 1000: 2.466 · 1250: 2.377 · 1500: 2.249 · 1750: 2.236 · 2000: 2.197 · 2250: 2.100 · 2500: 2.100 · 2750: 2.104 · 3000: 2.111`.
+
+Lily sample from the rented taste brain: "Once upon a time, there was a little girl named Lily. She had long hair that she loved to brush every day. One day, she found her big key in the garden and picked it up with her hands."
+
+The copies are in `cloud_brains/` on the Mac only. They are a twin of the early Mac student. The main `brain.pt` is the later reader at **1.795**, from a partial pass over the full 1.92 GB file (stopped on purpose around step 12,500, because the rest of the ~20 hours does not help the bigger rented brain). Chat files `brain_chat.pt` and `brain_dpo.pt` were not retrained on that 1.795 reader. Screenshots: `docs/images/runpod-pod-running.png`, `docs/images/runpod-first-train.png`.

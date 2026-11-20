@@ -33,9 +33,8 @@ Tip: debug everything on the Mac or a cheap GPU first. Only rent 8×H100 when th
 ## Safety checklist (read before every run)
 - [x] Code already tested locally on a tiny config (`bash cloud_train.sh --dry-run`, 92 s, real brains untouched)
 - [x] Checkpoints save regularly, and a second launch resumes instead of deleting them (`--fresh` is the only way to wipe saves)
-- [ ] I know how to copy results back
-- [ ] Timer/alarm set to stop the machine
-- [ ] Machine **terminated**, storage deleted, dashboard shows $0/hr
+- [x] Results copied home (Jupyter: `cp /hedwig/brain*.pt /workspace/`, then Download). On this pod the clone was in `/hedwig` because the terminal started at `/`, not in the home folder.
+- [x] Machine **stopped**, dashboard showed **$0.00/hr**. Balance **$15.00 → $14.90**. Press **Terminate** (not Start) to delete the pod. Delete the fine-grained token `hedwig-cloud` afterward.
 
 ## What the first hour looks like
 
@@ -46,6 +45,22 @@ The pod list while the small recipe is running on one RTX A5000 ($0.28/hour). Th
 The black window after the project has downloaded and `bash cloud_train.sh` has started. It is fetching the children's stories and the public-domain novels. The password was typed at the prompt and does not appear in the picture.
 
 ![First cloud training log](images/runpod-first-train.png)
+
+## 20 Nov 2026 smoke test (measured)
+
+One RTX A5000 on RunPod, PyTorch 2.8 template, **$0.28/hr**. Command: `bash cloud_train.sh` (the 13.8M student, 50 MB of TinyStories plus the same 10 novels). Not `--124m`.
+
+| Lesson | What it trained on | Score | Time |
+|---|---|---|---|
+| Reading | 50 MB TinyStories + 10 novels, 14,069,966 train pieces | 8.470 → **2.100** (best at step 2,250) | 135 s |
+| Manners | TinyStories-Instruct, 15,127 pairs | 2.073 → **1.758** | 81 s |
+| Taste | same pairs, good story vs off-topic or repetitive | win-rate 0% → **91.7%** | 23 s |
+
+8-bit barely changed the manners score (1.7864 → 1.7864). 4-bit went to 1.8026. The taste brain was 1.7952 at 16-bit and 1.8108 at 4-bit.
+
+Example from the taste brain, prompt about a key in the garden: "Once upon a time, there was a little girl named Lily. She had long hair that she loved to brush every day. One day, she found her big key in the garden..."
+
+The Mac's first reading of this same 50 MB pile took ~59 minutes and scored 2.080. This chip scored 2.100 in 135 seconds. The Mac file `brain.pt` at 1.795 is still the better reader, because it later saw much more than 50 MB. The rented copies live only in `cloud_brains/` and must not replace `brain.pt`.
 
 ## Useful commands
 ```bash

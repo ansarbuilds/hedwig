@@ -4,7 +4,7 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
 
 ## Progress so far (all trained on a MacBook Air M4 for $0)
 - **v1 (Phase 0):** 4.8M-parameter character-level Transformer on Tiny Shakespeare (~16 min, loss `1.481`).
-- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer. After a second read of **200 MB** of TinyStories (`more_english.py`, 54M pieces), val loss on the same test pages is **`2.010`** (was `2.080`). Chat manners **`1.723`** (was `1.754`). `brain.pt` = `27.8 MB`.
+- **v2 (Phase 1 & 2 — Stage 1 Storyteller):** 13.8M-parameter modern Transformer. Reading score on the same test pages: `2.080` after 50 MB, `2.010` after 200 MB, **`1.795`** after a partial read of the full TinyStories file (that long run was stopped on purpose). `brain.pt` is the 1.795 reader. Chat manners **`1.723`** are from the 200 MB lesson and were not redone after 1.795.
 - **v3 (Phase 2.5 — Stage 2 SFT + Stage 3 DPO + 8-bit/4-bit Quantization + Mac UI):**
   - **Stage 2 SFT (`sft.py`):** Fine-tuned on `13,852` instruction → story pairs (response loss **`1.723`** after the extra reading, was `1.7544`).
   - **Stage 3 DPO (`dpo.py`):** Preference tuning on the same pairs. Peak win-rate **`92.5%`** (step 50); the saved brain is step 150 at **`90.4%`** because the fluency-anchored score was still falling.
@@ -94,5 +94,5 @@ bash cloud_train.sh                                                  # rented GP
   4. ~~**iPhone brain (`export_iphone.py`):**~~ Core ML matches PyTorch 30/30 pieces. Xcode clicks are at the top of `ios/HedwigApp.swift`. Press Play there when a phone or simulator is open.
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
-  2. Rent 1× GPU (see [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md)) and run `bash cloud_train.sh` (~$2 smoke test).
+  2. ~~Rent 1× GPU and run `bash cloud_train.sh`~~ Done 20 Nov 2026. RTX A5000, reading score `2.100` in 135 s, about `$0.10`. See [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).
   3. Run `bash cloud_train.sh --124m` for the 91.3M brain: 20,000 steps, one read of 500 MB (about 2 word-pieces per knob, same as the Mac brain). Copy the files home. See [docs/ROADMAP.md](docs/ROADMAP.md) and the door-key steps in [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).

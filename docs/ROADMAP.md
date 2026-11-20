@@ -34,7 +34,7 @@ Since the cloud GPU run is scheduled for **next month (Dec 2026)**, we built and
 ## Phase 3: First cloud run (~$15–30 — Planned for Next Month / Dec 2026)
 See `docs/CLOUD_GPU_100.md`.
 - [x] Local rehearsal of `cloud_train.sh --dry-run` (2 steps in `dry_run/`, 92 s, real brains untouched). Restarts keep checkpoints. `--124m` is 91,286,272 knobs, and the script stops if that edit does not apply.
-- [ ] Rent 1× GPU, clone this repo, run a short test (~$2)
+- [x] Rent 1× GPU, clone this repo, run a short test. **Done 20 Nov 2026:** RunPod, 1× RTX A5000, `$0.28/hr`, about `$0.10`. `bash cloud_train.sh` scored reading `2.100` in 135 s (Mac first run: `2.080` in ~59 min). Screenshots in `docs/images/`. Copies in local `cloud_brains/` only.
 - [ ] Run **Karpathy's nanochat** speedrun end to end to see a full pretrain → SFT → chat pipeline at scale. Read every script.
 - [ ] Download the result; chat with it locally
 

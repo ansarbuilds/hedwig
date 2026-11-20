@@ -32,3 +32,4 @@ lang/books/
 lang/*.bin
 lang/ckpt.pt
 lang/ckpt.pt.tmp
+cloud_brains/
