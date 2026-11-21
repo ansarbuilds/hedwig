@@ -15,6 +15,7 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
   - **Mobile & Cloud Packaging (`export_iphone.py`, `cloud_train.sh`, `how-hedwig-learns.html`):** TorchScript + 4-bit + SwiftUI iPhone bundle, 1-command Dec 2026 cloud GPU script, and updated interactive field guide.
 - **v5 (SSD streaming & Mac lab, $0):** `ssd_runner.py` loads one thinking layer at a time off the SSD (`52.9 MB → 18.8 MB` weights, `108 → 33 tok/s`). Also benchmarked Apple MLX (`mlx_bench.py`: `6×` faster training step), exported a real Core ML iPhone brain (`export_iphone.py`: `30/30` match), and built a separate 2.56M French Hedwig (`lang_hedwig.py`).
 - **v6 (97.6M Cloud Hedwig — Stories + Modern English + Grammar, ~$0.65 on RunPod A40):** Scaled to **`97,581,824` knobs** (`12` layers, `768` wide, `12` heads, **`8,192`** vocab) on `614 MB` (`366.7 MB` TinyStories + `262.1 MB` FineWeb-Edu + 10 novels) + `30,930` story & Apache-2.0 Grammarly CoEdIT pairs: Stage 1 `2.619` → Stage 2 **`1.336`** → Stage 3 **`1.235`** (**96.7%** peak / **95.0%** saved win-rate), shrunk to **`55.2 MB`** at 4-bit (`1.369` chat / `1.412` taste). Backed up to Hugging Face ([ansarbuilds/hedwig-97m](https://huggingface.co/ansarbuilds/hedwig-97m)) and selectable side-by-side in `app.py` (`54 tok/s` offline on M4).
+- **v7 (286.7M Flagship Hedwig — 512 Context & 16k Vocab, ~$1.70 on RunPod RTX 4090):** Scaled to **`286,663,680` knobs** (`20` layers, `1024` wide, `16` heads, **`512`** context, **`16,384`** vocab) on `1.22 GB` (`523.9 MB` TinyStories + `734.0 MB` FineWeb-Edu + 10 novels) + `71,906` SFT pairs (`30,000` CoEdIT) + `52,798` DPO pairs: Stage 1 `2.998` → Stage 2 **`1.341`** → Stage 3 **`1.200`** (**98.3%** preference win-rate!), shrunk to **`161.9 MB`** at 4-bit. Backed up to Hugging Face ([ansarbuilds/hedwig-300m](https://huggingface.co/ansarbuilds/hedwig-300m)), wired into `app.py`, and compared side-by-side against 14M & 97.6M in [docs/STORY_SHOWDOWN.md](docs/STORY_SHOWDOWN.md).
 
 ```
 🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
@@ -81,7 +82,8 @@ bash cloud_train.sh                                                  # rented GP
 | `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5, Stage 1–3, Mac benchmarks, and RunPod results |
-| `docs/LEARNINGS.md` | Concepts and 33 sections of measured results (through the 97.6M A40 cloud run) |
+| `docs/LEARNINGS.md` | Concepts and 34 sections of measured results (through 286.7M Flagship & Story Showdown) |
+| `docs/STORY_SHOWDOWN.md` | Fair 12-prompt side-by-side comparison of 14M vs 97.6M vs 286.7M (`compare_brains.py`) |
 | `docs/ROADMAP.md` | Complete project plan & stretch checklist |
 | `docs/CLOUD_GPU_100.md` | Cloud GPU guide, RunPod smoke test results, & safety checklist |
 | `docs/VIDEO_SCRIPT.md` | Full narrative video / case-study storyboard & B-roll checklist |
@@ -100,4 +102,4 @@ bash cloud_train.sh                                                  # rented GP
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
   2. ~~Rent 1× GPU and run `bash cloud_train.sh`~~ Done 20 Nov 2026. RTX A5000, reading score `2.100` in 135 s, about `$0.10`. See [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).
   3. ~~Run `bash cloud_train.sh --124m` for the 97.6M Stories + Grammar brain~~ Done 20 Nov 2026. 1× NVIDIA A40 (`$0.59/hr`, ~66 min, `~$0.65`): Stage 1 `2.619`, Stage 2 **`1.336`**, Stage 3 **`1.235`** (`96.7%` peak win-rate), 4-bit **`55.2 MB`**. Backed up to [ansarbuilds/hedwig-97m](https://huggingface.co/ansarbuilds/hedwig-97m) and wired into `app.py`.
-  4. **In progress:** `bash cloud_train.sh --300m` for the **286.7M Flagship** brain (20 layers, 512 context, 16,384 vocab, 1.2 GB stories + FineWeb-Edu, 30,000 Grammarly CoEdIT pairs).
+  4. ~~Run `bash cloud_train.sh --300m` for the 286.7M Flagship brain~~ Done 20 Nov 2026. 1× RTX 4090 (`$0.89/hr`, ~115 min, `~$1.70`): Stage 1 `2.998` (16k vocab), Stage 2 **`1.341`**, Stage 3 **`1.200`** (`98.3%` win-rate), 4-bit **`161.9 MB`**. Backed up to [ansarbuilds/hedwig-300m](https://huggingface.co/ansarbuilds/hedwig-300m) and compared side-by-side in [docs/STORY_SHOWDOWN.md](docs/STORY_SHOWDOWN.md).

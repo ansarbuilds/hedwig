@@ -18,50 +18,71 @@ MODELS = {}
 TOKENIZERS = {}
 
 BRAIN_SPECS = {
-    "c97_dpo_16":  ("🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 16-bit · 196 MB)", "cloud_brains_97m/brain_dpo.pt",      "chat", 16, "cloud97"),
-    "c97_dpo_4":   ("🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 4-bit · 55 MB)",   "cloud_brains_97m/brain_dpo_int4.pt", "chat", 4,  "cloud97"),
-    "c97_chat_16": ("🌟 97.6M Cloud Hedwig — Stories + Grammar (SFT 16-bit · 196 MB)", "cloud_brains_97m/brain_chat.pt",     "chat", 16, "cloud97"),
-    "c97_chat_4":  ("🌟 97.6M Cloud Hedwig — Stories + Grammar (SFT 4-bit · 55 MB)",   "cloud_brains_97m/brain_chat_int4.pt","chat", 4,  "cloud97"),
-    "dpo_16":      ("Stage 3 DPO Chat (13.8M Mac · 27.8 MB · score 1.297)",            "brain_dpo.pt",                       "chat", 16, "dense"),
-    "dpo_8":       ("Stage 3 DPO 8-bit (13.8M Mac · 14.0 MB)",                         "brain_dpo_int8.pt",                  "chat", 8,  "dense"),
-    "dpo_4":       ("Stage 3 DPO 4-bit (13.8M Mac · 7.9 MB)",                          "brain_dpo_int4.pt",                  "chat", 4,  "dense"),
-    "moe_16":      ("MoE 8-Experts Top-2 (26.2M total / 11.6M active)",                "brain_moe.pt",                       "chat", 16, "moe"),
-    "baby_16":     ("🐣 Baby Hedwig Distilled (3.4M · 6.8 MB)",                         "brain_baby.pt",                      "chat", 16, "baby"),
-    "chat_16":     ("Stage 2 SFT Chat (13.8M Mac · 27.8 MB · score 1.438)",            "brain_chat.pt",                      "chat", 16, "dense"),
-    "chat_8":      ("8-bit Quantized Chat (13.8M Mac · 14.0 MB)",                      "brain_chat_int8.pt",                 "chat", 8,  "dense"),
-    "chat_4":      ("4-bit Quantized Chat (13.8M Mac · 7.9 MB)",                       "brain_chat_int4.pt",                 "chat", 4,  "dense"),
-    "base_16":     ("Stage 1 Autocomplete Base (13.8M Mac · 27.8 MB · score 1.795)",   "brain.pt",                           "base", 16, "dense"),
+    "c300_dpo_16":  ("🏆 286.7M Flagship Hedwig — Stories + Grammar (DPO 16-bit · 575 MB)", "cloud_brains_300m/brain_dpo.pt",      "chat", 16, "cloud300"),
+    "c300_dpo_4":   ("🏆 286.7M Flagship Hedwig — Stories + Grammar (DPO 4-bit · 162 MB)",  "cloud_brains_300m/brain_dpo_int4.pt", "chat", 4,  "cloud300"),
+    "c300_chat_16": ("🏆 286.7M Flagship Hedwig — Stories + Grammar (SFT 16-bit · 575 MB)", "cloud_brains_300m/brain_chat.pt",     "chat", 16, "cloud300"),
+    "c300_chat_4":  ("🏆 286.7M Flagship Hedwig — Stories + Grammar (SFT 4-bit · 162 MB)",  "cloud_brains_300m/brain_chat_int4.pt","chat", 4,  "cloud300"),
+    "c97_dpo_16":   ("🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 16-bit · 196 MB)",     "cloud_brains_97m/brain_dpo.pt",       "chat", 16, "cloud97"),
+    "c97_dpo_4":    ("🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 4-bit · 55 MB)",       "cloud_brains_97m/brain_dpo_int4.pt",  "chat", 4,  "cloud97"),
+    "c97_chat_16":  ("🌟 97.6M Cloud Hedwig — Stories + Grammar (SFT 16-bit · 196 MB)",     "cloud_brains_97m/brain_chat.pt",      "chat", 16, "cloud97"),
+    "c97_chat_4":   ("🌟 97.6M Cloud Hedwig — Stories + Grammar (SFT 4-bit · 55 MB)",       "cloud_brains_97m/brain_chat_int4.pt", "chat", 4,  "cloud97"),
+    "dpo_16":       ("Stage 3 DPO Chat (13.8M Mac · 27.8 MB · score 1.297)",                "brain_dpo.pt",                        "chat", 16, "dense"),
+    "dpo_8":        ("Stage 3 DPO 8-bit (13.8M Mac · 14.0 MB)",                             "brain_dpo_int8.pt",                   "chat", 8,  "dense"),
+    "dpo_4":        ("Stage 3 DPO 4-bit (13.8M Mac · 7.9 MB)",                              "brain_dpo_int4.pt",                   "chat", 4,  "dense"),
+    "moe_16":       ("MoE 8-Experts Top-2 (26.2M total / 11.6M active)",                    "brain_moe.pt",                        "chat", 16, "moe"),
+    "baby_16":      ("🐣 Baby Hedwig Distilled (3.4M · 6.8 MB)",                             "brain_baby.pt",                       "chat", 16, "baby"),
+    "chat_16":      ("Stage 2 SFT Chat (13.8M Mac · 27.8 MB · score 1.438)",                "brain_chat.pt",                       "chat", 16, "dense"),
+    "chat_8":       ("8-bit Quantized Chat (13.8M Mac · 14.0 MB)",                          "brain_chat_int8.pt",                  "chat", 8,  "dense"),
+    "chat_4":       ("4-bit Quantized Chat (13.8M Mac · 7.9 MB)",                           "brain_chat_int4.pt",                  "chat", 4,  "dense"),
+    "base_16":      ("Stage 1 Autocomplete Base (13.8M Mac · 27.8 MB · score 1.795)",       "brain.pt",                            "base", 16, "dense"),
 }
 
 def get_tokenizer(tok_path):
-    """Load and cache a BPE tokenizer (4,096 for 14M Mac brains; 8,192 for 97.6M Cloud brains)."""
+    """Load and cache a BPE tokenizer (4k for 14M Mac, 8k for 97.6M Cloud, 16k for 286.7M Flagship)."""
     if tok_path not in TOKENIZERS:
         TOKENIZERS[tok_path] = tokenizer.load(tok_path)
     return TOKENIZERS[tok_path]
 
-def use_tokenizer(tok_path):
-    """Point tinygpt's active encode/decode helpers at the selected brain's dictionary."""
+def use_tokenizer(tok_path, ctx_len=256):
+    """Point tinygpt's active encode/decode helpers and context window at the selected brain."""
     merges, vocab = get_tokenizer(tok_path)
     tinygpt.merges, tinygpt.vocab, tinygpt.vocab_size = merges, vocab, len(vocab)
+    tinygpt.block_size = ctx_len
     tinygpt.encode = lambda s, m=merges: tokenizer.encode(s, m)
     tinygpt.decode = lambda l, v=vocab: tokenizer.decode(l, v)
 
+def default_brain_key():
+    for k in ("c300_dpo_16", "c97_dpo_16", "dpo_16", "chat_16"):
+        if os.path.exists(BRAIN_SPECS[k][1]):
+            return k
+    return "dpo_16"
+
 def get_model(key):
-    """Lazy-load and cache the requested brain (97.6M Cloud, 14M Mac, MoE, Baby, or quantized) on M4 GPU."""
+    """Lazy-load and cache the requested brain (286.7M Flagship, 97.6M Cloud, 14M Mac, MoE, Baby, or quantized) on M4 GPU."""
     if key not in BRAIN_SPECS:
-        key = "c97_dpo_16" if os.path.exists("cloud_brains_97m/brain_dpo.pt") else "dpo_16"
+        key = default_brain_key()
     label, path, mode, bits, arch = BRAIN_SPECS[key]
     if not os.path.exists(path):
-        key = "dpo_16" if os.path.exists("brain_dpo.pt") else "chat_16"
+        key = default_brain_key()
         label, path, mode, bits, arch = BRAIN_SPECS[key]
-    tok_path = "cloud_brains_97m/tokenizer.json" if arch == "cloud97" else "tokenizer.json"
+    tok_path = (
+        "cloud_brains_300m/tokenizer.json" if arch == "cloud300" else
+        "cloud_brains_97m/tokenizer.json"  if arch == "cloud97"  else
+        "tokenizer.json"
+    )
+    ctx_len = 512 if arch == "cloud300" else 256
     if key not in MODELS:
-        use_tokenizer(tok_path)
-        if arch == "cloud97":
-            saved = (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer)
-            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer = 768, 12, 12
+        use_tokenizer(tok_path, ctx_len)
+        if arch == "cloud300":
+            saved = (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size)
+            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size = 1024, 16, 20, 512
             m = tinygpt.TinyGPT().to(tinygpt.device)
-            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer = saved
+            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size = saved
+        elif arch == "cloud97":
+            saved = (tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size)
+            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size = 768, 12, 12, 256
+            m = tinygpt.TinyGPT().to(tinygpt.device)
+            tinygpt.n_embd, tinygpt.n_head, tinygpt.n_layer, tinygpt.block_size = saved
         elif arch == "moe":
             m = moe.MoEGPT().to(tinygpt.device)
         elif arch == "baby":
@@ -73,7 +94,7 @@ def get_model(key):
             sd = quantize.dequantize(sd)
         m.load_state_dict(sd)
         m.eval()
-        MODELS[key] = (m, label, path, mode, os.path.getsize(path) / 1e6, tok_path)
+        MODELS[key] = (m, label, path, mode, os.path.getsize(path) / 1e6, tok_path, ctx_len)
     return MODELS[key]
 
 HTML = """<!doctype html>
@@ -121,10 +142,14 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
 </head>
 <body>
 <header>
-  <div class="brand">🦉 Hedwig <span class="badge">97.6M Cloud + 14M Mac · Stories &amp; Grammar · 🔬 Brain X-Ray</span></div>
+  <div class="brand">🦉 Hedwig <span class="badge">286.7M Flagship + 97.6M + 14M · 🔬 Brain X-Ray</span></div>
   <div class="controls">
     <label>Brain:
       <select id="model">
+        <option value="c300_dpo_16">🏆 286.7M Flagship Hedwig — Stories + Grammar (DPO 16-bit · 575 MB)</option>
+        <option value="c300_dpo_4">🏆 286.7M Flagship Hedwig — Stories + Grammar (DPO 4-bit · 162 MB)</option>
+        <option value="c300_chat_16">🏆 286.7M Flagship Hedwig — Stories + Grammar (SFT 16-bit · 575 MB)</option>
+        <option value="c300_chat_4">🏆 286.7M Flagship Hedwig — Stories + Grammar (SFT 4-bit · 162 MB)</option>
         <option value="c97_dpo_16">🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 16-bit · 196 MB)</option>
         <option value="c97_dpo_4">🌟 97.6M Cloud Hedwig — Stories + Grammar (DPO 4-bit · 55 MB)</option>
         <option value="c97_chat_16">🌟 97.6M Cloud Hedwig — Stories + Grammar (SFT 16-bit · 196 MB)</option>
@@ -283,10 +308,10 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(length) or b"{}")
         prompt = req.get("prompt", "Write a short story about a little owl.")
-        key = req.get("model", "c97_dpo_16")
+        key = req.get("model", default_brain_key())
         temp = max(0.1, min(1.5, float(req.get("temperature", 0.75))))
-        model, label, _, mode, mb, tok_path = get_model(key)
-        use_tokenizer(tok_path)
+        model, label, _, mode, mb, tok_path, ctx_len = get_model(key)
+        use_tokenizer(tok_path, ctx_len)
 
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
@@ -333,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.flush()
 
 if __name__ == "__main__":
-    get_model("c97_dpo_16" if os.path.exists("cloud_brains_97m/brain_dpo.pt") else "dpo_16")
+    get_model(default_brain_key())
     url = f"http://127.0.0.1:{PORT}"
     print(f"🦉 Hedwig Mac Chat UI + 🔬 Brain X-Ray running at {url} (Ctrl+C to stop)", flush=True)
     if "--no-open" not in sys.argv:

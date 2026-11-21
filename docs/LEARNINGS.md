@@ -380,3 +380,27 @@ Trained on RunPod **1× NVIDIA A40** (`48 GB VRAM`, **`$0.59/hr`**) in **~66 min
 **Real grammar test:** Recognized `Fix grammar:` / `Improve the grammar of this text:` and replied with a single edited sentence instead of a bedtime story (fixing `"I goes"` → `"I go"`), while still truncating or missing past-tense details on longer Teams messages — showing both that multi-task SFT works and why production work-grammar rewriting benefits from larger models.
 
 All 8 files (`brain*.pt` + 8,192-vocab `tokenizer.json`) live locally in `cloud_brains_97m/` (gitignored because 16-bit weights are 195.6 MB > GitHub's 100 MB limit) and are selectable side-by-side in `app.py`.
+
+## 34. Flagship 286.7M Hedwig (`bash cloud_train.sh --300m`) + 14M vs 97.6M vs 286.7M Story Showdown ✅
+
+Trained on RunPod **1× NVIDIA RTX 4090** (`24 GB VRAM`, **`$0.89/hr`**) in **~1 hr 55 min (~$1.70 total)**. Upgraded to **286,663,680 knobs** (`20` layers, `1024` wide, `16` heads, **`512` context window**, **`16,384`-piece BPE dictionary**) on **1.22 GB** (`523.9 MB` TinyStories + `734.0 MB` / `154,768` FineWeb-Edu docs + 10 novels = `294.6M` tokens; `25,000` steps ≈ `205M` tokens seen), followed by `71,906` SFT pairs (`TinyStories-Instruct` + `30,000` Grammarly CoEdIT) and `52,798` DPO pairs.
+
+| Metric | 14M Mac Hedwig | 97.6M Cloud Hedwig (A40) | 286.7M Flagship Hedwig (4090) |
+|---|---:|---:|---:|
+| Knobs / Context / Vocab | `13.8M` / `256` / `4,096` | `97.6M` / `256` / `8,192` | **`286.7M` / `512` / `16,384`** |
+| Tokens seen (ratio per knob) | ~125M (~9 / knob) | ~164M (~1.7 / knob) | ~205M (~0.7 / knob, intentionally under-read for budget) |
+| Cloud cost | `$0` (Mac M4) | `~$0.65` (A40, 66 min) | **`~$1.70`** (RTX 4090, 115 min) |
+| Stage 1 val *(different vocabs!)* | `1.795` (4k) | `2.619` (8k) | `2.998` (16k) |
+| Stage 2 SFT (`brain_chat.pt`) | `1.438` | `1.336` | **`1.341`** (71,906 pairs) |
+| Stage 3 DPO win-rate / anchored | `92.5%` / `1.297` | `96.7%` / `1.235` | **`98.3%` / `1.200`** (52,798 pairs) |
+| 16-bit / 4-bit file size | `27.8 / 7.9 MB` | `195.6 / 55.2 MB` | **`574.7 / 161.9 MB`** |
+
+**Fair Side-by-Side Story & Grammar Showdown (`compare_brains.py` → `docs/STORY_SHOWDOWN.md`, 12 fixed prompts, seed `42`, temp `0.65`):**
+- **Multi-part prompt following (Clear win for 286.7M):**
+  - *Lily + red umbrella + small frog:* Both 14M and 97.6M forgot the frog completely; **286.7M** included Lily, the small frog, and the red umbrella.
+  - *Two best friends build a treehouse:* 14M wrote about one girl; 97.6M got confused and wrote `"What are you doing, Jack?" asked Jack`; **286.7M** kept two distinct friends (*Bob and Sue*) straight through a thunderstorm.
+  - *Baby owl afraid of the dark until he saw the moon:* 14M started with an egg; 97.6M used a cloud; **286.7M** hit baby owl + dark + stars + moon.
+  - *Harry Potter:* 14M turned him into a puppy talking to `"Potus"`; both **97.6M** and **286.7M** kept `"Harry Potter"` and `"Harry"` as a boy throughout.
+- **Chinchilla "under-read" lesson visible in Grammar mode:** 14M ignored grammar prompts and wrote bedtime stories; both 97.6M and 286.7M immediately switched into single-sentence edit mode, and the better-read 97.6M fixed `"I goes"` → `"I go"` while the under-read 286.7M (`~0.7` tokens/knob) still left `"I goes"` or drifted `"stuck"` → `"snapped"`.
+
+Weights + 16k `tokenizer.json` live locally in `cloud_brains_300m/` (gitignored), backed up to Hugging Face (`ansarbuilds/hedwig-300m`), and wired into `app.py` side-by-side with 97.6M and 14M.

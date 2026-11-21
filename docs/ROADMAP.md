@@ -42,7 +42,7 @@ See `docs/CLOUD_GPU_100.md`.
 - [x] Local 13.8M prototype complete (`prepare_data.py` → `tinygpt.py` → `sft.py` → `quantize.py` → `app.py`)
 - [x] Scale up on cloud GPU (`bash cloud_train.sh --124m`): **Done 20 Nov 2026** on 1× NVIDIA A40 (`$0.59/hr`, ~66 min, `~$0.65`). Trained **97.6M knobs** (8,192 vocab) on 614 MB TinyStories + FineWeb-Edu + 30,930 SFT story & Grammarly CoEdIT pairs → Stage 1 `2.619`, Stage 2 **`1.336`**, Stage 3 **`1.235`** (`96.7%` peak win-rate), 4-bit **`55.2 MB`**.
 - [x] Download cloud weights and compare against the local 13.8M model in `app.py` (97.6M runs at `54 tok/s` offline on M4; kept `"Harry Potter"` across 4 paragraphs vs 14M's `"Timmy & pot of soup"`!)
-- [ ] Flagship scale-up (`bash cloud_train.sh --300m`): **286.7M knobs**, 512 context, 16,384 vocab, 1.2 GB stories + FineWeb-Edu, 30,000 CoEdIT pairs (running on RTX 4090!)
+- [x] Flagship scale-up (`bash cloud_train.sh --300m`): **Done 20 Nov 2026** on 1× RTX 4090 (`$0.89/hr`, ~115 min, `~$1.70`). Trained **286.7M knobs** (512 context, 16,384 vocab) on 1.22 GB + `71,906` SFT pairs (`30k` CoEdIT) → Stage 1 `2.998`, Stage 2 **`1.341`**, Stage 3 **`1.200`** (`98.3%` win-rate), 4-bit **`161.9 MB`**. Backed up to `ansarbuilds/hedwig-300m` and compared side-by-side in `docs/STORY_SHOWDOWN.md`.
 - [ ] Optionally expand SFT / DPO data with an **open** teacher model (Qwen / Mistral, Apache-2.0)
 
 ## Phase 5: Ship it ($0)
