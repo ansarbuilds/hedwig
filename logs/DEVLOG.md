@@ -70,3 +70,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **16:16** Add MIT LICENSE, Hugging Face uploader (upload_hf.py), and --300m Flagship (286.7M knobs, 512 context, 16k vocab) cloud pipeline. (`26e9dbd`)
 - **19:39** Document 97.6M A40 cloud run, Hugging Face backup (ansarbuilds/hedwig-97m), and --300m Flagship pipeline in README, roadmap, and visual guide. (`1787f61`)
 - **20:57** Wire 286.7M Flagship Hedwig into app.py, run 12-prompt Story Showdown, and log RTX 4090 + Hugging Face results. (`f4886ba`)
+- **21:44** Add 1-command Hugging Face brain downloader (download_brains.py) for open-source users. (`447d1af`)
