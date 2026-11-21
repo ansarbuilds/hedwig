@@ -108,3 +108,7 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > - index.html + .nojekyll so GitHub Pages serves the guide as the portfolio
   > - Film: softer grade; fix the rejected page in scene 5 never showing
   > - README links to the hosted guide; AGENTS.md describes film/movie/web
+- **11:59** Host portfolio hero media under site/; /hedwig/ now opens the portfolio page (`634aed9`)
+  > The new ansarbuilds.dev/work/hedwig/ page streams its hero loop and posters
+  > from here, like the films, so they don't count against the portfolio's
+  > size budget. README guide links go straight to how-hedwig-learns.html.
