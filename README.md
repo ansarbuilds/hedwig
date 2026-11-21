@@ -31,7 +31,9 @@ He said, "Thank you, Lily!" They went back home... dreaming of their next advent
 ```bash
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-.venv/bin/python app.py                                              # open offline Mac Chat UI (DPO / SFT / 8-bit / 4-bit)
+.venv/bin/python download_brains.py 97m                                # optional: fetch 97.6M 4-bit (55 MB) from Hugging Face
+.venv/bin/python download_brains.py 300m                               # optional: fetch 286.7M 4-bit (162 MB) from Hugging Face
+.venv/bin/python app.py                                                # open offline Mac Chat UI (286.7M / 97.6M / 14M)
 .venv/bin/python dpo.py talk "Write a short story about dragon and castle."
 .venv/bin/python sft.py chat                                         # interactive terminal chat (`brain_chat.pt`)
 .venv/bin/python sft.py talk "Tell me a story where a little girl named Lily finds a shiny key in the garden."
@@ -68,6 +70,8 @@ bash cloud_train.sh                                                  # rented GP
 | `mlx_bench.py` | Times the same 13.8M brain in Apple MLX and in PyTorch |
 | `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` trains 97.6M; `--300m` trains 286.7M Flagship; restarts resume |
 | `upload_hf.py` | 1-command Hugging Face uploader for large cloud brains (>100 MB) + Model Card |
+| `download_brains.py` | 1-command Hugging Face downloader so anyone can pull the 97.6M (55 MB) or 286.7M (162 MB) brains |
+| `compare_brains.py` | Runs 12 fixed prompts across 14M vs 97.6M vs 286.7M and writes `docs/STORY_SHOWDOWN.md` |
 | `LICENSE` | MIT open-source license |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
