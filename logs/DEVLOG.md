@@ -115,3 +115,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **12:11** Text-free seamless hero loop for the portfolio page (`f10e819`)
   > New HedwigHeroLoop composition (moon, stars, Pip perched, 180-frame cycle)
   > replaces the film clip, whose own 'Hedwig' title showed behind the page title.
+- **12:41** Add an 18-second silent highlight reel for the portfolio homepage (`1e302e0`)
