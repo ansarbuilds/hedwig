@@ -26,21 +26,27 @@ export const CameraRig: React.FC<{ frame: number; rms: number; children: React.R
 }) => {
   const t = frame / 30;
   // Layered sine "steadicam" drift (sub-pixel to a few px — subtle, not seasick)
-  const dx = Math.sin(t * 0.7) * 5 + Math.sin(t * 1.9 + 1.3) * 1.6;
-  const dy = Math.cos(t * 0.55) * 3.5 + Math.sin(t * 2.3) * 1.1;
-  const rot = Math.sin(t * 0.42) * 0.18;
+  const dx = Math.sin(t * 0.7) * 16 + Math.sin(t * 1.9 + 1.3) * 5;
+  const dy = Math.cos(t * 0.55) * 11 + Math.sin(t * 2.3) * 3.5;
+  const rot = Math.sin(t * 0.42) * 0.6;
   // Each shot slowly pushes in, like a dolly
   const s = sinceCut(frame);
-  const dolly = 1 + Math.min(s === Infinity ? frame : s, 220) * 0.00018;
+  const dolly = 1 + Math.min(s === Infinity ? frame : s, 220) * 0.0007;
   // Punch-in kick on the cut, settles with an ease-out
-  const punch = s < 14 ? interpolate(s, [0, 14], [0.035, 0], { ...clamp, easing: Easing.out(Easing.cubic) }) : 0;
+  const punch = s < 14 ? interpolate(s, [0, 14], [0.14, 0], { ...clamp, easing: Easing.out(Easing.cubic) }) : 0;
   // Bass "thump" from the soundtrack
-  const thump = Math.max(0, rms - 0.35) * 0.02;
+  const thump = Math.max(0, rms - 0.35) * 0.06;
   const scale = dolly + punch + thump;
+  // Whip-pan into each cut: last 5 frames of a shot + first 6 of the next smear sideways
+  const next = CUTS.find((c) => c > frame) ?? Infinity;
+  const toNext = next - frame;
+  const blur = s < 6 ? (6 - s) * 3 : toNext <= 5 ? (6 - toNext) * 3 : 0;
+  const whip = s < 6 ? -(6 - s) * 40 : toNext <= 5 ? (6 - toNext) * 40 : 0;
   return (
     <AbsoluteFill
       style={{
-        transform: `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(${scale})`,
+        transform: `translate(${dx + whip}px, ${dy}px) rotate(${rot}deg) scale(${scale})`,
+        filter: `blur(${blur}px) contrast(1.18) saturate(1.3) brightness(1.04)`,
         transformOrigin: "50% 50%",
       }}
     >
@@ -55,13 +61,13 @@ const Grade: React.FC = () => (
     <AbsoluteFill
       style={{
         mixBlendMode: "soft-light",
-        background: "linear-gradient(180deg, rgba(0,70,90,0.22) 0%, rgba(0,0,0,0) 45%, rgba(255,150,60,0.18) 100%)",
+        background: "linear-gradient(180deg, rgba(0,90,110,0.55) 0%, rgba(0,0,0,0) 45%, rgba(255,140,50,0.45) 100%)",
       }}
     />
     <AbsoluteFill
       style={{
         mixBlendMode: "screen",
-        background: "radial-gradient(ellipse 60% 45% at 50% 48%, rgba(255,210,150,0.07), rgba(0,0,0,0) 70%)",
+        background: "radial-gradient(ellipse 60% 45% at 50% 48%, rgba(255,210,150,0.16), rgba(0,0,0,0) 70%)",
       }}
     />
   </>
@@ -71,7 +77,7 @@ const Grade: React.FC = () => (
 const Flare: React.FC<{ frame: number; peak: number }> = ({ frame, peak }) => {
   const s = sinceCut(frame);
   const cutBurst = s < 20 ? interpolate(s, [0, 4, 20], [0, 1, 0], clamp) : 0;
-  const k = Math.min(1, Math.max(cutBurst, (peak - 0.55) * 1.6));
+  const k = Math.min(1, Math.max(cutBurst, 0.4 + (peak - 0.45) * 1.6));
   if (k <= 0.01) return null;
   const x = 50 + Math.sin(frame / 47) * 18;
   const y = 42 + Math.cos(frame / 61) * 8;
@@ -83,8 +89,8 @@ const Flare: React.FC<{ frame: number; peak: number }> = ({ frame, peak }) => {
           left: 0,
           right: 0,
           top: `${y}%`,
-          height: 6,
-          marginTop: -3,
+          height: 14,
+          marginTop: -7,
           background: `radial-gradient(ellipse 55% 50% at ${x}% 50%, rgba(160,200,255,0.95), rgba(80,120,255,0.35) 40%, rgba(0,0,0,0) 75%)`,
           filter: "blur(2px)",
         }}
@@ -126,7 +132,7 @@ const Flare: React.FC<{ frame: number; peak: number }> = ({ frame, peak }) => {
 const LightLeak: React.FC<{ frame: number }> = ({ frame }) => {
   const s = sinceCut(frame);
   if (s > 26) return null;
-  const o = interpolate(s, [0, 5, 26], [0, 0.55, 0], clamp);
+  const o = interpolate(s, [0, 5, 26], [0, 0.95, 0], clamp);
   const side = Math.floor(random(`leak-${frame - s}`) * 2) ? 100 : 0;
   return (
     <AbsoluteFill
@@ -143,7 +149,7 @@ const LightLeak: React.FC<{ frame: number }> = ({ frame }) => {
 const FlashFrame: React.FC<{ frame: number }> = ({ frame }) => {
   const s = sinceCut(frame);
   if (s > 3) return null;
-  return <AbsoluteFill style={{ background: "#fff", opacity: [0.32, 0.16, 0.06, 0][s] }} />;
+  return <AbsoluteFill style={{ background: "#fff", opacity: [0.85, 0.45, 0.15, 0][s] }} />;
 };
 
 // --- 6. Film grain + dust + gate weave flicker ---
@@ -170,7 +176,7 @@ const Grain: React.FC<{ frame: number }> = ({ frame }) => {
   });
   return (
     <>
-      <AbsoluteFill style={{ opacity: 0.11, mixBlendMode: "overlay" }}>
+      <AbsoluteFill style={{ opacity: 0.22, mixBlendMode: "overlay" }}>
         <svg width="100%" height="100%">
           <filter id={`g${seed}`}>
             <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed={seed} stitchTiles="stitch" />
@@ -190,13 +196,13 @@ const Lens: React.FC = () => (
   <>
     <AbsoluteFill
       style={{
-        background: "radial-gradient(ellipse 80% 75% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%)",
+        background: "radial-gradient(ellipse 80% 75% at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.8) 100%)",
       }}
     />
     <AbsoluteFill
       style={{
         mixBlendMode: "screen",
-        boxShadow: "inset 6px 0 18px rgba(255,0,60,0.10), inset -6px 0 18px rgba(0,140,255,0.10)",
+        boxShadow: "inset 6px 0 18px rgba(255,0,60,0.3), inset -6px 0 18px rgba(0,140,255,0.3)",
       }}
     />
   </>
