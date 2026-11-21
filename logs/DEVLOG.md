@@ -100,3 +100,11 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > X-Ray bars on the demo; hero, sticky lesson menu and restyled toys on
   > the guide. All existing interactions unchanged; light mode and phone
   > width checked.
+- **01:44** Play films on the web: GitHub Pages portfolio, demo film, motion (`3393039`)
+  > - Guide embeds the launch film and the storybook short, adds an animated
+  >   pipeline, a flying owl and scroll-in sections
+  > - Demo plays a 720p film copy (web/media, <10 MB), shooting stars,
+  >   entrance animations, ink-in X-Ray words and a Read/Answer/Taste strip
+  > - index.html + .nojekyll so GitHub Pages serves the guide as the portfolio
+  > - Film: softer grade; fix the rejected page in scene 5 never showing
+  > - README links to the hosted guide; AGENTS.md describes film/movie/web
