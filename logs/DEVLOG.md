@@ -83,3 +83,12 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > Camera rig (drift, dolly, punch-in on cuts), teal/orange grade, anamorphic
   > flare, light leaks, flash frames, film grain, vignette and letterbox.
   > Render script now re-encodes to keep the mp4 under GitHub's size limit (26 MB).
+
+## 2026-11-21
+- **00:21** Redesign launch film scenes with Pip the owl and stronger finishing (`fa5e599`)
+  > Rebuild all 10 scenes (HedwigFilm.tsx + shared filmKit.tsx): starfield cold
+  > open, 3D dial field, code tunnel, letter galaxy + loss curve, burning page
+  > duel, monoliths in fog, X-Ray hologram, 4-bit press, devices at dawn, owl
+  > flight over the moon. Same voiceover, timing and numbers.
+  > Make the cinematic layer clearly visible (camera, whip-pans, grade, flares,
+  > grain) and re-encode the mp4 to ~23 MB so it fits under GitHub's limit.
