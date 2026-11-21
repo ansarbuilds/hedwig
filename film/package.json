@@ -5,7 +5,7 @@
   "description": "60-second launch film for Hedwig, built in Remotion.",
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render HedwigDemo out/hedwig-demo.mp4 --codec=h264 --pixel-format=yuv420p --crf=14"
+    "render": "remotion render HedwigDemo out/hedwig-demo.mp4 --codec=h264 --pixel-format=yuv420p --crf=14 && ffmpeg -y -loglevel error -i out/hedwig-demo.mp4 -c:v libx264 -preset slow -crf 23 -tune grain -pix_fmt yuv420p -c:a copy out/tmp.mp4 && mv out/tmp.mp4 out/hedwig-demo.mp4"
   },
   "dependencies": {
     "@fontsource/instrument-serif": "^5.0.0",

@@ -1,3 +1,4 @@
+import { CameraRig, CinemaPost } from "./cinemaPost";
 import React from "react";
 import {
   AbsoluteFill,
@@ -1490,12 +1491,13 @@ const Beat10: React.FC<{ frame: number; rms: number }> = ({ frame, rms }) => {
 export const HedwigDemo: React.FC = () => {
   const frame = useCurrentFrame();
   const rms = AUDIO_RMS[frame] ?? 0.25;
-  const _peak = AUDIO_PEAK[frame] ?? 0.3;
+  const peak = AUDIO_PEAK[frame] ?? 0.3;
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: "hidden" }}>
       <Audio src={staticFile("demo-soundtrack.wav")} />
 
+      <CameraRig frame={frame} rms={rms}>
       <Beat1 frame={frame} rms={rms} />
       <Beat2 frame={frame} rms={rms} />
       <Beat3 frame={frame} />
@@ -1506,16 +1508,9 @@ export const HedwigDemo: React.FC = () => {
       <Beat8 frame={frame} />
       <Beat9 frame={frame} />
       <Beat10 frame={frame} rms={rms} />
+      </CameraRig>
 
-      {/* Cinema vignette */}
-      <AbsoluteFill
-        style={{
-          pointerEvents: "none",
-          zIndex: 60,
-          background:
-            "radial-gradient(ellipse 85% 80% at 50% 50%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.36) 100%)",
-        }}
-      />
+      <CinemaPost frame={frame} peak={peak} />
 
       <FilmSubtitles frame={frame} />
     </AbsoluteFill>
