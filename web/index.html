@@ -5,59 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hedwig Storyteller</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦉</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 :root {
-  --bg: #f7f5f0; --card: #ffffff; --ink: #1f2430; --muted: #6b7280; --line: #e5e1d8;
-  --accent: #4f46e5; --accent-ink: #ffffff; --soft: #eef0ff; --bar: #a5b4fc;
+  --bg: #f6f1e6; --bg2: #ece3cf; --card: rgba(255,252,245,.86); --ink: #241f17; --muted: #6f6656; --line: #ddd2bb;
+  --accent: #4f46e5; --accent-ink: #fff; --gold: #b7791f; --soft: #efe7d6; --bar: #6366f1; --paper: #fffaf0;
+  --glow: rgba(183,121,31,.18); --stars: 0;
+  --serif: "Instrument Serif", Georgia, serif; --sans: "Plus Jakarta Sans", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14161c; --card: #1d2029; --ink: #e8eaf0; --muted: #9aa1b1; --line: #2d313d;
-    --accent: #818cf8; --accent-ink: #14161c; --soft: #262a3a; --bar: #6366f1;
-  }
-}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #05070f; --bg2: #141a3a; --card: rgba(20,24,46,.72); --ink: #f3efe4; --muted: #9aa0b8; --line: #2a3054;
+  --accent: #f5b841; --accent-ink: #1a1204; --gold: #ffd97d; --soft: #1e2446; --bar: #818cf8; --paper: #fbf6e9;
+  --glow: rgba(245,184,65,.22); --stars: 1; color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #14161c; --card: #1d2029; --ink: #e8eaf0; --muted: #9aa1b1; --line: #2d313d;
-  --accent: #818cf8; --accent-ink: #14161c; --soft: #262a3a; --bar: #6366f1;
-}
+  --bg: #05070f; --bg2: #141a3a; --card: rgba(20,24,46,.72); --ink: #f3efe4; --muted: #9aa0b8; --line: #2a3054;
+  --accent: #f5b841; --accent-ink: #1a1204; --gold: #ffd97d; --soft: #1e2446; --bar: #818cf8; --paper: #fbf6e9;
+  --glow: rgba(245,184,65,.22); --stars: 1; color-scheme: dark; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink);
-  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
-h1 { font-size: 28px; margin: 0 0 4px; }
-.sub { color: var(--muted); margin: 0 0 24px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
-label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
-select, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
-textarea { min-height: 72px; resize: vertical; }
-.row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-top: 12px; }
+html { background: var(--bg); }
+body { margin: 0; min-height: 100vh; color: var(--ink); font: 16px/1.6 var(--sans);
+  background: radial-gradient(ellipse 90% 60% at 50% -10%, var(--bg2), var(--bg) 70%) fixed; }
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: var(--stars); }
+main { position: relative; max-width: 780px; margin: 0 auto; padding: 40px 16px 72px; }
+header { text-align: center; margin-bottom: 28px; }
+.owl { width: 96px; height: 96px; filter: drop-shadow(0 0 28px var(--glow)); animation: bob 5s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+.owl .lid { transform-origin: center; animation: blink 6s infinite; transform-box: fill-box; }
+@keyframes blink { 0%, 94%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1); } }
+h1 { font: 400 clamp(44px, 9vw, 72px)/1 var(--serif); margin: 8px 0 10px; letter-spacing: .01em; }
+h1 em { color: var(--gold); }
+.sub { color: var(--muted); margin: 0 auto; max-width: 560px; }
+.badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+.badges span { font: 500 12px var(--mono); letter-spacing: .04em; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--card); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 20px; margin-bottom: 18px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+label { font: 600 12px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 8px; }
+select, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--soft);
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+textarea { min-height: 76px; resize: vertical; font: 400 22px/1.35 var(--serif); }
+textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.row { display: flex; gap: 14px; align-items: end; flex-wrap: wrap; margin-top: 16px; }
 .row > div { flex: 1 1 200px; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
-button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 10px 18px;
-  background: var(--accent); color: var(--accent-ink); cursor: pointer; }
-button:disabled { opacity: .5; cursor: wait; }
-.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.chip { background: var(--soft); color: var(--ink); font-weight: 400; font-size: 14px; padding: 6px 10px; }
-#story { white-space: pre-wrap; min-height: 120px; font-size: 17px; }
-#story span { cursor: pointer; border-radius: 4px; }
-#story span:hover, #story span.on { background: var(--soft); }
-.meta { color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 20px; }
-.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
-.progress div { height: 100%; width: 0; background: var(--accent); }
-#xray h2 { font-size: 15px; margin: 0 0 10px; }
-.cand { display: grid; grid-template-columns: 110px 1fr 52px; gap: 10px; align-items: center; font-size: 14px; margin: 4px 0; }
-.cand code { background: var(--soft); padding: 1px 6px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
-.cand .b { height: 10px; background: var(--bar); border-radius: 5px; }
-.cand .p { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
-footer { color: var(--muted); font-size: 14px; }
-a { color: var(--accent); }
+button { font: inherit; font-weight: 800; border: 0; border-radius: 12px; padding: 12px 22px;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; transition: transform .15s, box-shadow .15s; }
+#go { box-shadow: 0 0 0 0 var(--glow); }
+#go:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 30px var(--glow); }
+button:disabled { opacity: .55; cursor: wait; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.chip { background: transparent; color: var(--ink); font-weight: 400; font-size: 14px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; }
+.chip:hover { border-color: var(--accent); }
+.page { background: linear-gradient(170deg, var(--paper), #efe5cf); color: #2a2418; border: 0; position: relative; overflow: hidden; }
+.page::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 100% 0, rgba(183,121,31,.12), transparent 50%); }
+#story { position: relative; white-space: pre-wrap; min-height: 160px; font: 400 23px/1.5 var(--serif); }
+#story span { cursor: pointer; border-radius: 4px; transition: background .15s; }
+#story span:hover, #story span.on { background: rgba(245,184,65,.35); }
+.writing #story::after { content: "▍"; color: #b7791f; animation: cur 1s steps(2) infinite; }
+@keyframes cur { 50% { opacity: 0; } }
+.meta { position: relative; color: #7a6f5c; font: 500 12px var(--mono); margin-top: 12px; min-height: 18px; }
+.progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 14px; display: none; }
+.progress div { height: 100%; width: 0; background: linear-gradient(90deg, var(--bar), var(--accent)); transition: width .2s; }
+#xray { border-color: color-mix(in srgb, var(--bar) 45%, transparent); }
+#xray h2 { font: 600 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--bar); margin: 0 0 14px; }
+.cand { display: grid; grid-template-columns: 120px 1fr 56px; gap: 12px; align-items: center; font-size: 14px; margin: 8px 0; }
+.cand code { font-family: var(--mono); background: var(--soft); padding: 3px 8px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.cand .b { height: 10px; background: var(--bar); border-radius: 5px; box-shadow: 0 0 14px color-mix(in srgb, var(--bar) 60%, transparent); animation: grow .5s ease-out; transform-origin: left; }
+.cand:first-child .b { background: var(--accent); }
+@keyframes grow { from { transform: scaleX(0); } }
+.cand .p { text-align: right; color: var(--muted); font: 500 13px var(--mono); }
+footer { color: var(--muted); font-size: 14px; text-align: center; margin-top: 28px; }
+footer p { margin: 6px auto; max-width: 600px; }
+a { color: var(--gold); }
+@media (max-width: 520px) { .cand { grid-template-columns: 90px 1fr 50px; } #story { font-size: 20px; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
+<canvas id="sky" aria-hidden="true"></canvas>
 <main>
-  <h1>🦉 Hedwig Storyteller</h1>
-  <p class="sub">A small language model built from scratch in PyTorch. It runs here, on your own device: nothing you type leaves this page.</p>
+  <header>
+    <svg class="owl" viewBox="-60 -70 120 140" aria-hidden="true">
+      <path d="M-26-30 L-20-56 L-8-38 Z M26-30 L20-56 L8-38 Z" fill="#cfc6b4"/>
+      <ellipse cx="0" cy="18" rx="34" ry="42" fill="#efe8d8"/>
+      <circle cx="0" cy="-16" r="32" fill="#f6f0e2"/>
+      <circle cx="-13" cy="-18" r="13" fill="#f5b841"/><circle cx="13" cy="-18" r="13" fill="#f5b841"/>
+      <circle cx="-13" cy="-18" r="5.5" fill="#160e02"/><circle cx="13" cy="-18" r="5.5" fill="#160e02"/>
+      <circle cx="-15" cy="-21" r="2" fill="#fff"/><circle cx="11" cy="-21" r="2" fill="#fff"/>
+      <rect class="lid" x="-27" y="-32" width="54" height="28" rx="13" fill="#e6dcc6"/>
+      <path d="M-5-6 L5-6 L0 5 Z" fill="#e2a23a"/>
+      <path d="M-10 22 q4 4 8 0 M2 22 q4 4 8 0 M-4 32 q4 4 8 0" stroke="#a99f8c" stroke-width="2" fill="none"/>
+    </svg>
+    <h1>Hedwig <em>Storyteller</em></h1>
+    <p class="sub">A small language model built from scratch in PyTorch. It runs right here, on your own device. Nothing you type leaves this page.</p>
+    <div class="badges"><span>NO SERVER</span><span>NO ACCOUNT</span><span>OPEN WEIGHTS</span></div>
+  </header>
 
   <div class="card">
     <label for="prompt">Ask Hedwig for a story</label>
@@ -79,29 +122,45 @@ a { color: var(--accent); }
         <label for="temp">Creativity: <span id="tempv">0.75</span></label>
         <input id="temp" type="range" min="0.1" max="1.5" step="0.05" value="0.75">
       </div>
-      <button id="go">Write</button>
+      <button id="go">Write ✦</button>
     </div>
     <div class="progress" id="prog"><div></div></div>
   </div>
 
-  <div class="card">
+  <div class="card page" id="pagecard">
     <div id="story">Hedwig's story will appear here. When it's done, click any word to X-ray it.</div>
     <div class="meta" id="meta"></div>
   </div>
 
   <div class="card" id="xray" hidden>
-    <h2>🔬 Brain X-Ray: the 5 pieces Hedwig was choosing between</h2>
+    <h2>🔬 Brain X-Ray · the 5 pieces Hedwig was choosing between</h2>
     <div id="cands"></div>
   </div>
 
   <footer>
-    For scale: Hedwig is 13.8M or 97.6M knobs. GPT-2 small (2019) is about 124M and GPT-3 about 175 billion.
+    <p>For scale: Hedwig is 13.8M or 97.6M knobs. GPT-2 small (2019) is about 124M and GPT-3 about 175 billion.
     Hedwig has only read children's stories, some FineWeb-Edu, and 10 public-domain novels.
-    The first story downloads the brain once; after that it's cached.<br>
-    Code (MIT): <a href="https://github.com/ansarbuilds/hedwig">github.com/ansarbuilds/hedwig</a> ·
-    Weights: <a href="https://huggingface.co/ansarbuilds/hedwig-97m">hedwig-97m</a>
+    The first story downloads the brain once; after that it's cached.</p>
+    <p>Code (MIT): <a href="https://github.com/ansarbuilds/hedwig">github.com/ansarbuilds/hedwig</a> ·
+    Weights: <a href="https://huggingface.co/ansarbuilds/hedwig-97m">hedwig-97m</a></p>
   </footer>
 </main>
+<script>
+// Twinkling stars behind the page (dark mode only; purely decorative).
+(() => {
+  const c = document.getElementById("sky"), x = c.getContext("2d");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let stars = [];
+  const size = () => { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio;
+    stars = Array.from({ length: 160 }, () => ({ x: Math.random() * c.width, y: Math.random() * c.height,
+      r: (Math.random() ** 3 * 1.6 + .3) * devicePixelRatio, p: Math.random() * 6.3 })); };
+  const draw = t => { x.clearRect(0, 0, c.width, c.height);
+    for (const s of stars) { x.globalAlpha = .3 + .7 * Math.abs(Math.sin(t / 1400 + s.p));
+      x.beginPath(); x.arc(s.x, s.y, s.r, 0, 7); x.fillStyle = "#fff"; x.fill(); }
+    if (!still) requestAnimationFrame(draw); };
+  size(); addEventListener("resize", size); requestAnimationFrame(draw);
+})();
+</script>
 <script type="module">
 const $ = id => document.getElementById(id);
 const worker = new Worker("worker.js", { type: "module" });
@@ -115,7 +174,7 @@ $("prompt").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)
 function go() {
   if (busy || !$("prompt").value.trim()) return;
   busy = true; $("go").disabled = true; $("xray").hidden = true;
-  $("story").textContent = ""; $("meta").textContent = "";
+  $("story").textContent = ""; $("meta").textContent = ""; $("pagecard").classList.add("writing");
   worker.postMessage({ brain: $("brain").value, prompt: $("prompt").value, temperature: +$("temp").value });
 }
 
@@ -131,9 +190,11 @@ worker.onmessage = ({ data: m }) => {
     $("story").textContent = m.text;
     $("meta").textContent = `${m.tokens} pieces · ${m.tps.toFixed(1)} pieces/second on your device`;
   } else if (m.type === "done") {
+    $("pagecard").classList.remove("writing");
     showXray(m.text, m.xray);
     busy = false; $("go").disabled = false;
   } else if (m.type === "error") {
+    $("pagecard").classList.remove("writing");
     $("meta").textContent = "Something went wrong: " + m.text;
     busy = false; $("go").disabled = false;
   }
