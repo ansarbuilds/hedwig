@@ -95,3 +95,8 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **00:31** Rewrite README: banner, film preview, size comparison, pipeline diagram (`9a68774`)
   > Leads with the live browser demo, the launch film and a 3-generation
   > results table; moves long history to docs and folds side experiments.
+- **01:05** Redesign browser demo and visual guide in the film's night-sky style (`b5784bf`)
+  > Starfield, blinking owl, serif type, parchment story page and glowing
+  > X-Ray bars on the demo; hero, sticky lesson menu and restyled toys on
+  > the guide. All existing interactions unchanged; light mode and phone
+  > width checked.
