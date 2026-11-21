@@ -515,3 +515,27 @@ export const HedwigFilm: React.FC = () => {
     </AbsoluteFill>
   );
 };
+
+// =========================================================================
+// Text-free 6-second loop for the portfolio hero: moon, stars, Pip perched.
+// Everything moves on a 180-frame cycle so the end meets the start.
+// =========================================================================
+export const HedwigHeroLoop: React.FC = () => {
+  const f = useCurrentFrame();
+  const cyc = (f % 180) / 180;
+  const w = Math.sin(cyc * Math.PI * 2);
+  const blink = f % 180 > 120 && f % 180 < 126 ? 1 : 0;
+  return (
+    <AbsoluteFill style={{ backgroundColor: C.night }}>
+      <Sky t={cyc * 28 * Math.PI} top="#010208" bottom="#141a40" />
+      <div style={{ position: "absolute", left: 960 - 330, top: 150, width: 660, height: 660, borderRadius: "50%", background: "radial-gradient(circle at 40% 38%, #fffdf2, #e8e2cc 55%, #b8b09a 100%)", boxShadow: "0 0 160px 40px rgba(255,245,210,0.35)" }}>
+        {[[180, 200, 70], [400, 330, 50], [260, 450, 90], [470, 160, 40]].map(([x, y, r], i) => <div key={i} style={{ position: "absolute", left: x, top: y, width: r, height: r, borderRadius: "50%", background: "rgba(150,140,120,0.25)" }} />)}
+      </div>
+      <Fog t={w * 40 + 40} y={74} color="150,160,230" />
+      <div style={{ position: "absolute", left: 960 - 150, top: 330 + w * 6, transform: `rotate(${w * 1.5}deg)` }}>
+        <Owl size={300} flap={w * 0.06} look={Math.sin(cyc * Math.PI * 4) * 0.6} blink={blink} />
+      </div>
+      <Bokeh t={w * 60} opacity={0.6} />
+    </AbsoluteFill>
+  );
+};
