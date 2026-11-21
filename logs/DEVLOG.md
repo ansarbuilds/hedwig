@@ -79,3 +79,7 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > - deploy_space.py: publish web/ to ansarbuilds/hedwig-demo
   > - app.py: host/port/default brain from env vars, hide brains not on disk
 - **23:37** Add Remotion launch film (film/) and storybook short movie (movie/) (`05e030c`)
+- **23:47** Add cinematic finishing layer to launch film (`8019f4a`)
+  > Camera rig (drift, dolly, punch-in on cuts), teal/orange grade, anamorphic
+  > flare, light leaks, flash frames, film grain, vignette and letterbox.
+  > Render script now re-encodes to keep the mp4 under GitHub's size limit (26 MB).
