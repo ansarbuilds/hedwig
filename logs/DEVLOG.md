@@ -112,3 +112,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > The new ansarbuilds.dev/work/hedwig/ page streams its hero loop and posters
   > from here, like the films, so they don't count against the portfolio's
   > size budget. README guide links go straight to how-hedwig-learns.html.
+- **12:11** Text-free seamless hero loop for the portfolio page (`f10e819`)
+  > New HedwigHeroLoop composition (moon, stars, Pip perched, 180-frame cycle)
+  > replaces the film clip, whose own 'Hedwig' title showed behind the page title.
