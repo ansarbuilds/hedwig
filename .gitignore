@@ -35,3 +35,6 @@ lang/ckpt.pt.tmp
 cloud_brains/
 cloud_brains_97m/
 cloud_brains_300m/
+
+# browser brains are rebuilt by export_web.py and live on the Hugging Face Space
+web/brains/

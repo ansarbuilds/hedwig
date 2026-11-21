@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hedwig Storyteller</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦉</text></svg>">
+<style>
+:root {
+  --bg: #f7f5f0; --card: #ffffff; --ink: #1f2430; --muted: #6b7280; --line: #e5e1d8;
+  --accent: #4f46e5; --accent-ink: #ffffff; --soft: #eef0ff; --bar: #a5b4fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161c; --card: #1d2029; --ink: #e8eaf0; --muted: #9aa1b1; --line: #2d313d;
+    --accent: #818cf8; --accent-ink: #14161c; --soft: #262a3a; --bar: #6366f1;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161c; --card: #1d2029; --ink: #e8eaf0; --muted: #9aa1b1; --line: #2d313d;
+  --accent: #818cf8; --accent-ink: #14161c; --soft: #262a3a; --bar: #6366f1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+select, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+textarea { min-height: 72px; resize: vertical; }
+.row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-top: 12px; }
+.row > div { flex: 1 1 200px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 10px 18px;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+button:disabled { opacity: .5; cursor: wait; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.chip { background: var(--soft); color: var(--ink); font-weight: 400; font-size: 14px; padding: 6px 10px; }
+#story { white-space: pre-wrap; min-height: 120px; font-size: 17px; }
+#story span { cursor: pointer; border-radius: 4px; }
+#story span:hover, #story span.on { background: var(--soft); }
+.meta { color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 20px; }
+.progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
+.progress div { height: 100%; width: 0; background: var(--accent); }
+#xray h2 { font-size: 15px; margin: 0 0 10px; }
+.cand { display: grid; grid-template-columns: 110px 1fr 52px; gap: 10px; align-items: center; font-size: 14px; margin: 4px 0; }
+.cand code { background: var(--soft); padding: 1px 6px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.cand .b { height: 10px; background: var(--bar); border-radius: 5px; }
+.cand .p { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+footer { color: var(--muted); font-size: 14px; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>🦉 Hedwig Storyteller</h1>
+  <p class="sub">A small language model built from scratch in PyTorch. It runs here, on your own device: nothing you type leaves this page.</p>
+
+  <div class="card">
+    <label for="prompt">Ask Hedwig for a story</label>
+    <textarea id="prompt">Write a short story about Lily and a shiny key.</textarea>
+    <div class="chips">
+      <button class="chip">Write a short story about an owl and a moon.</button>
+      <button class="chip">Write a story about a dragon who is afraid of the dark.</button>
+      <button class="chip">Tell me a story where a boy finds a lost puppy.</button>
+    </div>
+    <div class="row">
+      <div>
+        <label for="brain">Brain</label>
+        <select id="brain">
+          <option value="14m">Mac Hedwig · 13.8M knobs · 14 MB download (fast)</option>
+          <option value="97m">Cloud Hedwig · 97.6M knobs · 98 MB download (better stories, slower)</option>
+        </select>
+      </div>
+      <div>
+        <label for="temp">Creativity: <span id="tempv">0.75</span></label>
+        <input id="temp" type="range" min="0.1" max="1.5" step="0.05" value="0.75">
+      </div>
+      <button id="go">Write</button>
+    </div>
+    <div class="progress" id="prog"><div></div></div>
+  </div>
+
+  <div class="card">
+    <div id="story">Hedwig's story will appear here. When it's done, click any word to X-ray it.</div>
+    <div class="meta" id="meta"></div>
+  </div>
+
+  <div class="card" id="xray" hidden>
+    <h2>🔬 Brain X-Ray: the 5 pieces Hedwig was choosing between</h2>
+    <div id="cands"></div>
+  </div>
+
+  <footer>
+    For scale: Hedwig is 13.8M or 97.6M knobs. GPT-2 small (2019) is about 124M and GPT-3 about 175 billion.
+    Hedwig has only read children's stories, some FineWeb-Edu, and 10 public-domain novels.
+    The first story downloads the brain once; after that it's cached.<br>
+    Code (MIT): <a href="https://github.com/ansarbuilds/hedwig">github.com/ansarbuilds/hedwig</a> ·
+    Weights: <a href="https://huggingface.co/ansarbuilds/hedwig-97m">hedwig-97m</a>
+  </footer>
+</main>
+<script type="module">
+const $ = id => document.getElementById(id);
+const worker = new Worker("worker.js", { type: "module" });
+let busy = false;
+
+$("temp").oninput = () => $("tempv").textContent = (+$("temp").value).toFixed(2);
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => { $("prompt").value = c.textContent; go(); });
+$("go").onclick = go;
+$("prompt").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) go(); };
+
+function go() {
+  if (busy || !$("prompt").value.trim()) return;
+  busy = true; $("go").disabled = true; $("xray").hidden = true;
+  $("story").textContent = ""; $("meta").textContent = "";
+  worker.postMessage({ brain: $("brain").value, prompt: $("prompt").value, temperature: +$("temp").value });
+}
+
+worker.onmessage = ({ data: m }) => {
+  if (m.type === "progress") {
+    $("prog").style.display = "block";
+    $("prog").firstElementChild.style.width = (m.total ? 100 * m.got / m.total : 50) + "%";
+    $("meta").textContent = `Downloading brain… ${(m.got / 1e6).toFixed(1)} MB`;
+  } else if (m.type === "status") {
+    $("meta").textContent = m.text;
+  } else if (m.type === "text") {
+    $("prog").style.display = "none";
+    $("story").textContent = m.text;
+    $("meta").textContent = `${m.tokens} pieces · ${m.tps.toFixed(1)} pieces/second on your device`;
+  } else if (m.type === "done") {
+    showXray(m.text, m.xray);
+    busy = false; $("go").disabled = false;
+  } else if (m.type === "error") {
+    $("meta").textContent = "Something went wrong: " + m.text;
+    busy = false; $("go").disabled = false;
+  }
+};
+
+// Turn the finished story into clickable pieces.
+function showXray(text, steps) {
+  const story = $("story"); story.textContent = "";
+  let shown = "", started = false;
+  for (const s of steps) {
+    let piece = s.piece;
+    if (!started) { piece = piece.trimStart(); if (!piece) continue; started = true; }
+    if (shown.length >= text.length) break;
+    piece = piece.slice(0, text.length - shown.length);
+    shown += piece;
+    const span = document.createElement("span");
+    span.textContent = piece;
+    span.onclick = () => {
+      story.querySelectorAll(".on").forEach(e => e.classList.remove("on"));
+      span.classList.add("on");
+      $("cands").innerHTML = "";
+      for (const [word, pct] of s.top5) {
+        const row = document.createElement("div"); row.className = "cand";
+        const w = document.createElement("code"); w.textContent = JSON.stringify(word).slice(1, -1);
+        const b = document.createElement("div"); b.className = "b"; b.style.width = Math.max(2, pct) + "%";
+        const p = document.createElement("div"); p.className = "p"; p.textContent = pct.toFixed(1) + "%";
+        row.append(w, b, p); $("cands").append(row);
+      }
+      $("xray").hidden = false;
+    };
+    story.append(span);
+  }
+}
+</script>
+</body>
+</html>

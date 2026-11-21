@@ -13,7 +13,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import torch
 import tokenizer, tinygpt, sft, quantize, moe, distill
 
-PORT = 8000
+HOST = os.environ.get("HEDWIG_HOST", "127.0.0.1")   # the Hugging Face Space sets 0.0.0.0 so visitors can reach it
+PORT = int(os.environ.get("HEDWIG_PORT", "8000"))  # the Space uses 7860
 MODELS = {}
 TOKENIZERS = {}
 
@@ -52,7 +53,10 @@ def use_tokenizer(tok_path, ctx_len=256):
     tinygpt.decode = lambda l, v=vocab: tokenizer.decode(l, v)
 
 def default_brain_key():
-    for k in ("c300_dpo_16", "c97_dpo_16", "dpo_16", "chat_16"):
+    wanted = os.environ.get("HEDWIG_DEFAULT")  # e.g. the Space picks the fast 97.6M 4-bit brain
+    if wanted in BRAIN_SPECS and os.path.exists(BRAIN_SPECS[wanted][1]):
+        return wanted
+    for k in ("c300_dpo_16", "c97_dpo_16", "c300_dpo_4", "c97_dpo_4", "dpo_16", "chat_16"):
         if os.path.exists(BRAIN_SPECS[k][1]):
             return k
     return "dpo_16"
@@ -298,7 +302,19 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         return
     def do_GET(self):
-        body = HTML.encode("utf-8")
+        # Only show brains that are actually on disk (the Space only downloads a few),
+        # and pre-select the default one.
+        default = default_brain_key()
+        lines = []
+        for line in HTML.split("\n"):
+            if '<option value="' in line:
+                key = line.split('<option value="')[1].split('"')[0]
+                if key in BRAIN_SPECS and not os.path.exists(BRAIN_SPECS[key][1]):
+                    continue
+                if key == default:
+                    line = line.replace(f'value="{key}"', f'value="{key}" selected', 1)
+            lines.append(line)
+        body = "\n".join(lines).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -359,8 +375,8 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     get_model(default_brain_key())
-    url = f"http://127.0.0.1:{PORT}"
+    url = f"http://{HOST}:{PORT}"
     print(f"🦉 Hedwig Mac Chat UI + 🔬 Brain X-Ray running at {url} (Ctrl+C to stop)", flush=True)
     if "--no-open" not in sys.argv:
         webbrowser.open(url)
-    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
+    HTTPServer((HOST, PORT), Handler).serve_forever()
