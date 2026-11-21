@@ -92,3 +92,6 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > flight over the moon. Same voiceover, timing and numbers.
   > Make the cinematic layer clearly visible (camera, whip-pans, grade, flares,
   > grain) and re-encode the mp4 to ~23 MB so it fits under GitHub's limit.
+- **00:31** Rewrite README: banner, film preview, size comparison, pipeline diagram (`9a68774`)
+  > Leads with the live browser demo, the launch film and a 3-generation
+  > results table; moves long history to docs and folds side experiments.
