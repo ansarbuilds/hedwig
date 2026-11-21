@@ -9,8 +9,8 @@
 Pure PyTorch. No Hugging Face Trainer, no Lightning, no shortcuts. Every step of a modern LLM pipeline is written by hand and measured: tokenizer, pretraining, chat fine-tuning, preference tuning, quantization, and on-device apps.
 
 [**▶ Try it in your browser**](https://huggingface.co/spaces/ansarbuilds/hedwig-demo) ·
-[**🎬 Watch the films**](https://ansarbuilds.github.io/hedwig/how-hedwig-learns.html#lesson-1) ·
-[**🧠 How Hedwig learns**](https://ansarbuilds.github.io/hedwig/) ·
+[**🎬 Watch the films**](https://ansarbuilds.dev/hedwig/how-hedwig-learns.html#lesson-1) ·
+[**🧠 How Hedwig learns**](https://ansarbuilds.dev/hedwig/) ·
 [**🤗 Weights**](https://huggingface.co/ansarbuilds/hedwig-300m)
 
 ![PyTorch](https://img.shields.io/badge/PyTorch-from%20scratch-ee4c2c?logo=pytorch&logoColor=white)
@@ -26,7 +26,7 @@ Pure PyTorch. No Hugging Face Trainer, no Lightning, no shortcuts. Every step of
 ## 🎬 The film
 
 <div align="center">
-<a href="https://ansarbuilds.github.io/hedwig/how-hedwig-learns.html#lesson-1"><img src="docs/images/hedwig-film-preview.gif" alt="Clips from the Hedwig launch film" width="720"></a>
+<a href="https://ansarbuilds.dev/hedwig/how-hedwig-learns.html#lesson-1"><img src="docs/images/hedwig-film-preview.gif" alt="Clips from the Hedwig launch film" width="720"></a>
 <br><sub>Clips from the launch film, made in code with <a href="film/">Remotion</a>. Click to watch the full film with sound, plus the storybook short <i>Pip and the Lost Key</i>.</sub>
 </div>
 
@@ -135,7 +135,7 @@ bash cloud_train.sh --300m           # on a rented GPU: train the 286.7M flagshi
 - [**STORY_SHOWDOWN.md**](docs/STORY_SHOWDOWN.md): 14M vs 97.6M vs 286.7M on the same prompts
 - [**CLOUD_GPU_100.md**](docs/CLOUD_GPU_100.md): how the cloud runs were done for $2.45
 - [**ROADMAP.md**](docs/ROADMAP.md): what's next
-- [**How Hedwig Learns**](https://ansarbuilds.github.io/hedwig/): interactive visual guide with both films
+- [**How Hedwig Learns**](https://ansarbuilds.dev/hedwig/): interactive visual guide with both films
 - [**movie/**](movie/): *Pip and the Lost Key*, a short storybook film written by Hedwig
 
 ## 🙏 Data and credits
