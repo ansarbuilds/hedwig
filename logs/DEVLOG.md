@@ -71,3 +71,10 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 - **19:39** Document 97.6M A40 cloud run, Hugging Face backup (ansarbuilds/hedwig-97m), and --300m Flagship pipeline in README, roadmap, and visual guide. (`1787f61`)
 - **20:57** Wire 286.7M Flagship Hedwig into app.py, run 12-prompt Story Showdown, and log RTX 4090 + Hugging Face results. (`f4886ba`)
 - **21:44** Add 1-command Hugging Face brain downloader (download_brains.py) for open-source users. (`447d1af`)
+- **22:19** Add free in-browser Hedwig demo (static Hugging Face Space) (`a5dd183`)
+  > - web/hedwig.js: tokenizer + TinyGPT + sampling rewritten in plain JavaScript
+  > - web/index.html + worker.js: chat page with Brain X-Ray, runs on the visitor's device
+  > - export_web.py: export brains as 8-bit browser files (14M = 14 MB, 97.6M = 98 MB)
+  > - web/test_web.mjs: JS matches PyTorch 40/40 greedy pieces for both brains
+  > - deploy_space.py: publish web/ to ansarbuilds/hedwig-demo
+  > - app.py: host/port/default brain from env vars, hide brains not on disk
