@@ -38,3 +38,7 @@ cloud_brains_300m/
 
 # browser brains are rebuilt by export_web.py and live on the Hugging Face Space
 web/brains/
+
+# Movie scratch files (rebuilt by movie/make_movie.py)
+movie/build/
+film/node_modules/
