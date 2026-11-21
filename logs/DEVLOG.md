@@ -78,3 +78,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
   > - web/test_web.mjs: JS matches PyTorch 40/40 greedy pieces for both brains
   > - deploy_space.py: publish web/ to ansarbuilds/hedwig-demo
   > - app.py: host/port/default brain from env vars, hide brains not on disk
+- **23:37** Add Remotion launch film (film/) and storybook short movie (movie/) (`05e030c`)
