@@ -13,7 +13,8 @@ A tiny GPT-style language model built from scratch in pure PyTorch to learn how 
   - **Mixture-of-Experts (`moe.py`):** 8 specialist experts, top-2 routing (`26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966`).
   - **Knowledge Distillation (`distill.py`):** `13.8M` Teacher → `3.4M` **🐣 Baby Hedwig** Student (`brain_baby.pt`, `6.8 MB`, loss `7.602 → 2.521`).
   - **Mobile & Cloud Packaging (`export_iphone.py`, `cloud_train.sh`, `how-hedwig-learns.html`):** TorchScript + 4-bit + SwiftUI iPhone bundle, 1-command Dec 2026 cloud GPU script, and updated interactive field guide.
-- **v5 (SSD streaming, $0):** `ssd_runner.py` loads one thinking layer at a time off the SSD ("LLM in a Flash"). Weights in memory drop `52.9 MB → 18.8 MB`, speed drops `108 → 33 tok/s`, and the story is identical. Peak process RAM only moves `403 → 372 MB`, because a `28 MB` brain is smaller than PyTorch itself.
+- **v5 (SSD streaming & Mac lab, $0):** `ssd_runner.py` loads one thinking layer at a time off the SSD (`52.9 MB → 18.8 MB` weights, `108 → 33 tok/s`). Also benchmarked Apple MLX (`mlx_bench.py`: `6×` faster training step), exported a real Core ML iPhone brain (`export_iphone.py`: `30/30` match), and built a separate 2.56M French Hedwig (`lang_hedwig.py`).
+- **v6 (97.6M Cloud Hedwig — Stories + Modern English + Grammar, ~$0.65 on RunPod A40):** Scaled to **`97,581,824` knobs** (`12` layers, `768` wide, `12` heads, **`8,192`** vocab) on `614 MB` (`366.7 MB` TinyStories + `262.1 MB` FineWeb-Edu + 10 novels) + `30,930` story & Apache-2.0 Grammarly CoEdIT pairs: Stage 1 `2.619` → Stage 2 **`1.336`** → Stage 3 **`1.235`** (**96.7%** peak / **95.0%** saved win-rate), shrunk to **`55.2 MB`** at 4-bit (`1.369` chat / `1.412` taste). Backed up to Hugging Face ([ansarbuilds/hedwig-97m](https://huggingface.co/ansarbuilds/hedwig-97m)) and selectable side-by-side in `app.py` (`54 tok/s` offline on M4).
 
 ```
 🧑 You: Tell me a story where a little girl named Lily finds a shiny key in the garden.
@@ -64,7 +65,9 @@ bash cloud_train.sh                                                  # rented GP
 | `lang_hedwig.py` | French Hedwig (2.56M) on public-domain books, saved under `lang/` |
 | `ssd_runner.py` | Loads one thinking layer at a time from `ssd_layers/` and compares RAM vs speed |
 | `mlx_bench.py` | Times the same 13.8M brain in Apple MLX and in PyTorch |
-| `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` is the 91.3M scale-up; restarts resume |
+| `cloud_train.sh` | Cloud pipeline. `--dry-run` rehearses locally; `--124m` trains 97.6M; `--300m` trains 286.7M Flagship; restarts resume |
+| `upload_hf.py` | 1-command Hugging Face uploader for large cloud brains (>100 MB) + Model Card |
+| `LICENSE` | MIT open-source license |
 | `prepare_data.py` | Downloads TinyStories + 10 Project Gutenberg books, trains 4,096-vocab BPE, writes `uint16` `.bin` shards |
 | `tokenizer.py` | From-scratch word-chunked BPE tokenizer (`minbpe` / GPT-2 style) |
 | `tokenizer.json` | Learned BPE merges (4,096 vocab on TinyStories + Project Gutenberg) |
@@ -78,7 +81,7 @@ bash cloud_train.sh                                                  # rented GP
 | `brain_baby.pt` | Distilled 3.4M Baby Hedwig weights (`6.8 MB` in `bfloat16`, loss `2.521`) |
 | `data/input.txt` | Tiny Shakespeare (~1.1 MB) |
 | `how-hedwig-learns.html` | Interactive visual field guide updated with all Phase 1–5, Stage 1–3, Mac benchmarks, and RunPod results |
-| `docs/LEARNINGS.md` | Concepts and 32 sections of measured results |
+| `docs/LEARNINGS.md` | Concepts and 33 sections of measured results (through the 97.6M A40 cloud run) |
 | `docs/ROADMAP.md` | Complete project plan & stretch checklist |
 | `docs/CLOUD_GPU_100.md` | Cloud GPU guide, RunPod smoke test results, & safety checklist |
 | `docs/VIDEO_SCRIPT.md` | Full narrative video / case-study storyboard & B-roll checklist |
@@ -96,4 +99,5 @@ bash cloud_train.sh                                                  # rented GP
 - **Next Month (Dec 2026 — ~$15–100 Cloud GPU Sprint):**
   1. ~~Local rehearsal of `cloud_train.sh --dry-run`~~ Done (92 s, checkpoints resume, `--124m` counts as 91,286,272 knobs).
   2. ~~Rent 1× GPU and run `bash cloud_train.sh`~~ Done 20 Nov 2026. RTX A5000, reading score `2.100` in 135 s, about `$0.10`. See [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).
-  3. Run `bash cloud_train.sh --124m` for the 91.3M brain: 20,000 steps, one read of 500 MB (about 2 word-pieces per knob, same as the Mac brain). Copy the files home. See [docs/ROADMAP.md](docs/ROADMAP.md) and the door-key steps in [docs/CLOUD_GPU_100.md](docs/CLOUD_GPU_100.md).
+  3. ~~Run `bash cloud_train.sh --124m` for the 97.6M Stories + Grammar brain~~ Done 20 Nov 2026. 1× NVIDIA A40 (`$0.59/hr`, ~66 min, `~$0.65`): Stage 1 `2.619`, Stage 2 **`1.336`**, Stage 3 **`1.235`** (`96.7%` peak win-rate), 4-bit **`55.2 MB`**. Backed up to [ansarbuilds/hedwig-97m](https://huggingface.co/ansarbuilds/hedwig-97m) and wired into `app.py`.
+  4. **In progress:** `bash cloud_train.sh --300m` for the **286.7M Flagship** brain (20 layers, 512 context, 16,384 vocab, 1.2 GB stories + FineWeb-Edu, 30,000 Grammarly CoEdIT pairs).

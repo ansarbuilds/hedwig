@@ -38,17 +38,18 @@ See `docs/CLOUD_GPU_100.md`.
 - [ ] Run **Karpathy's nanochat** speedrun end to end to see a full pretrain → SFT → chat pipeline at scale. Read every script.
 - [ ] Download the result; chat with it locally
 
-## Phase 4: Hedwig-chat storyteller scale-up (~$50–70 — Planned for Next Month / Dec 2026)
+## Phase 4: Hedwig-chat storyteller + grammar scale-up (~$5–20)
 - [x] Local 13.8M prototype complete (`prepare_data.py` → `tinygpt.py` → `sft.py` → `quantize.py` → `app.py`)
-- [ ] Scale up on cloud GPU: `bash cloud_train.sh --124m` trains the 91.3M brain for 20,000 steps on 500 MB (same ~2 tokens per knob as the Mac brain). Full 1.9 GB and larger brains stay later.
+- [x] Scale up on cloud GPU (`bash cloud_train.sh --124m`): **Done 20 Nov 2026** on 1× NVIDIA A40 (`$0.59/hr`, ~66 min, `~$0.65`). Trained **97.6M knobs** (8,192 vocab) on 614 MB TinyStories + FineWeb-Edu + 30,930 SFT story & Grammarly CoEdIT pairs → Stage 1 `2.619`, Stage 2 **`1.336`**, Stage 3 **`1.235`** (`96.7%` peak win-rate), 4-bit **`55.2 MB`**.
+- [x] Download cloud weights and compare against the local 13.8M model in `app.py` (97.6M runs at `54 tok/s` offline on M4; kept `"Harry Potter"` across 4 paragraphs vs 14M's `"Timmy & pot of soup"`!)
+- [ ] Flagship scale-up (`bash cloud_train.sh --300m`): **286.7M knobs**, 512 context, 16,384 vocab, 1.2 GB stories + FineWeb-Edu, 30,000 CoEdIT pairs (running on RTX 4090!)
 - [ ] Optionally expand SFT / DPO data with an **open** teacher model (Qwen / Mistral, Apache-2.0)
-- [ ] Download cloud weights and compare against the local 13.8M model in `app.py`
 
 ## Phase 5: Ship it ($0)
-- [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.4530 → 1.4531 → 1.4765`, taste `1.4666 → 1.4667 → 1.4897`
-- [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 16-bit / 8-bit / 4-bit switcher)
+- [x] Quantize to 8-bit / 4-bit (`quantize.py`); manners `1.4530 → 1.4531 → 1.4765`, taste `1.4666 → 1.4667 → 1.4897` (and 97.6M: `55.2 MB` at 4-bit)
+- [x] Run on the Mac with a simple chat UI (`app.py` at `http://127.0.0.1:8000`, live 97.6M Cloud + 14M Mac switcher)
 - [x] Convert to mobile / Xcode bundle (`export_iphone.py` → Core ML `iphone/Hedwig.mlpackage`, 27.7 MB, **30/30** greedy pieces match PyTorch; Swift tokenizer matches Python; Xcode clicks in `ios/HedwigApp.swift`)
-- [ ] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup
+- [x] Upload large cloud weights (>100 MB) to **Hugging Face** (private) as a backup: **Done** (`https://huggingface.co/ansarbuilds/hedwig-97m` via `upload_hf.py` + MIT `LICENSE`)
 
 ## Stretch ideas
 - [x] **Mixture-of-Experts Hedwig (8 experts, top-2)** (`moe.py` → `26.2M` total / `11.6M` active knobs, upcycled from `brain_dpo.pt`, loss `2.461 → 1.966` in 300 steps)

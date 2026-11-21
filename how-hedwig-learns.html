@@ -202,6 +202,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
       <tr><td>iPhone Core ML export</td><td><span class="mono">export_iphone.py</span></td><td>27.7 MB Core ML brain matched PyTorch <b>30/30</b> pieces + Swift tokenizer</td></tr>
       <tr><td>French Hedwig</td><td><span class="mono">lang_hedwig.py</span></td><td>Separate 2.56M French brain on Dumas + Verne; val <b>7.776 → 3.541</b> in 57 s</td></tr>
       <tr><td>First RunPod GPU smoke test</td><td><span class="mono">cloud_train.sh</span></td><td>RTX A5000 ($0.28/hr, ~$0.10 spent): 50 MB train in <b>135 s</b> vs ~59 min on Mac (<b>~26× faster</b>)</td></tr>
+      <tr><td>97.6M Cloud Hedwig (Stories + Grammar)</td><td><span class="mono">cloud_train.sh --124m</span></td><td>NVIDIA A40 ($0.59/hr, ~66 min, <b>~$0.65</b>): 8,192 vocab, 614 MB TinyStories + FineWeb-Edu, 30,930 SFT + Grammarly CoEdIT pairs → SFT <b>1.336</b>, DPO <b>1.235 (96.7% peak win)</b>, 4-bit <b>55.2 MB</b>. Backed up to Hugging Face (<span class="mono">ansarbuilds/hedwig-97m</span>).</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -276,7 +277,7 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
   });
   stageInfo.textContent=STAGES.s1;
 
-  const sizes=[['1 knob','our toy above',1,0],['Hedwig v1 (char)','4.8 million · 18 MB',4.8e6,0],['Hedwig v3 (yours!)','13.8 million · 7.9 MB at 4-bit',1.38e7,1],['Hedwig Cloud (Dec 2026)','~124 million · GPT-2 Small scale',1.24e8,0],['GPT-2 XL','1.5 billion',1.5e9,0],['Frontier (GPT-4/5)','hundreds of billions (est.)',3e11,0]];
+  const sizes=[['1 knob','our toy above',1,0],['Hedwig v1 (char)','4.8 million · 18 MB',4.8e6,0],['Hedwig 14M (Mac M4)','13.8 million · 7.9 MB at 4-bit',1.38e7,1],['Hedwig 97.6M (Cloud A40!)','97.6 million · 55.2 MB at 4-bit',9.76e7,1],['Hedwig Flagship (--300m)','286.7 million · ~160 MB at 4-bit',2.87e8,0],['GPT-2 XL','1.5 billion',1.5e9,0],['Frontier (GPT-4/5)','hundreds of billions (est.)',3e11,0]];
   const max=Math.log10(3e11);
   document.getElementById('scale').innerHTML=sizes.map(s=>`<div class="srow"><div class="slabel">${s[0]}<small>${s[1]}</small></div><div class="sbar ${s[3]?'us':''}" style="width:${Math.max(1,Math.log10(s[2])/max*100)}%"></div></div>`).join('');
 })();
