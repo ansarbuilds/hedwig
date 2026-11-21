@@ -116,10 +116,37 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 .foot{text-align:center;color:var(--muted);font-size:.95rem}
 .foot a{color:var(--amber)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* --- motion & media additions --- */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .8s ease,transform .8s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.sbar{transform-origin:left;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
+.in .sbar{transform:scaleX(1)}
+.in .srow:nth-child(2) .sbar{transition-delay:.1s}.in .srow:nth-child(3) .sbar{transition-delay:.2s}.in .srow:nth-child(4) .sbar{transition-delay:.3s}
+.in .srow:nth-child(5) .sbar{transition-delay:.4s}.in .srow:nth-child(6) .sbar{transition-delay:.5s}.in .srow:nth-child(7) .sbar{transition-delay:.6s}
+.flyer{position:absolute;top:120px;left:-80px;width:56px;opacity:.85;pointer-events:none;animation:fly 22s linear infinite 3s;z-index:0}
+@keyframes fly{0%{transform:translate(0,0)}25%{transform:translate(30vw,-30px)}50%{transform:translate(60vw,10px)}75%{transform:translate(90vw,-40px)}100%{transform:translate(120vw,0)}}
+.flyer .w{transform-origin:50% 40%;animation:flap .35s ease-in-out infinite alternate}
+@keyframes flap{to{transform:scaleY(.35)}}
+.screen{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:0 30px 80px rgba(0,0,0,.35),0 0 60px rgba(245,184,65,.12);background:#000}
+.screen video{display:block;width:100%;height:auto}
+.films{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:620px){.films{grid-template-columns:1fr}}
+.films figcaption{font-size:.9rem;color:var(--muted);margin-top:8px}
+.films figure{margin:0}
+.pipe{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:28px 0 6px}
+.pipe::before{content:"";position:absolute;left:12%;right:12%;top:46px;height:2px;background:linear-gradient(90deg,var(--accent),var(--amber))}
+.pipe .dot{position:absolute;top:40px;left:12%;width:14px;height:14px;border-radius:50%;background:var(--amber);box-shadow:0 0 18px var(--amber);animation:travel 6s cubic-bezier(.6,0,.4,1) infinite}
+@keyframes travel{0%{left:12%}30%{left:37%}55%{left:62%}85%,100%{left:86%}}
+.pipe div.st{text-align:center;position:relative}
+.pipe .ic{width:40px;height:40px;margin:0 auto 8px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2px solid var(--amber);font-size:18px;position:relative;z-index:1}
+.pipe b{display:block;font-size:.9rem}.pipe small{color:var(--muted);font-family:var(--mono);font-size:.72rem}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.sbar{transform:none}.flyer{display:none}}
 </style>
 </head>
 <body>
 <canvas id="sky" aria-hidden="true"></canvas>
+<svg class="flyer" viewBox="-40 -30 80 60" aria-hidden="true"><g class="w"><path d="M-4 0 Q-30 -22 -38 4 Q-22 -2 -6 8 Z M4 0 Q30 -22 38 4 Q22 -2 6 8 Z" fill="#e8dfcc"/></g><ellipse cx="0" cy="4" rx="9" ry="12" fill="#f3ecdc"/><circle cx="-3.5" cy="-1" r="2.6" fill="#f5b841"/><circle cx="3.5" cy="-1" r="2.6" fill="#f5b841"/></svg>
 <main>
 <header class="hero">
   <div style="display:flex;flex-direction:column;gap:16px">
@@ -143,6 +170,16 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
   </svg>
 </header>
 <nav id="menu" aria-label="Lessons"></nav>
+
+<section class="cinema">
+  <div class="lesson">Prologue · Watch first</div>
+  <h2>Two films, one owl</h2>
+  <p>The launch film shows the whole journey in 60 seconds. The storybook film's story was written word for word by the 286.7M Hedwig.</p>
+  <div class="films">
+    <figure><div class="screen"><video src="film/out/hedwig-demo.mp4" poster="docs/images/hedwig-banner.jpg" controls preload="none" playsinline></video></div><figcaption>🎬 Launch film · 60 s · made in code with Remotion</figcaption></figure>
+    <figure><div class="screen"><video src="movie/pip_and_the_lost_key.mp4" controls preload="metadata" playsinline></video></div><figcaption>📖 <i>Pip and the Lost Key</i> · 84 s · story by Hedwig</figcaption></figure>
+  </div>
+</section>
 
 <section>
   <div class="lesson">Lesson 1 · The guessing game &amp; BPE word-pieces</div>
@@ -225,6 +262,12 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
 <section>
   <div class="lesson">Lesson 6 · The 3 Stages of ChatGPT + 4-bit Quantization</div>
   <h2>How Hedwig went from Autocomplete → Chat Manners → Taste → 7.9 MB</h2>
+  <div class="pipe" aria-hidden="true"><span class="dot"></span>
+    <div class="st"><div class="ic">📖</div><b>Read</b><small>pretrain</small></div>
+    <div class="st"><div class="ic">💬</div><b>Answer</b><small>SFT</small></div>
+    <div class="st"><div class="ic">⭐</div><b>Taste</b><small>DPO</small></div>
+    <div class="st"><div class="ic">🗜️</div><b>Shrink</b><small>4-bit</small></div>
+  </div>
   <div class="toy">
     <div class="row" id="stageTabs">
       <button type="button" class="ghost active" data-stage="s1">Stage 1: Pretrain (brain.pt)</button>
@@ -281,10 +324,13 @@ td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabu
   const draw=t=>{x.clearRect(0,0,c.width,c.height);for(const s of st){x.globalAlpha=.3+.7*Math.abs(Math.sin(t/1400+s.p));x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fillStyle='#fff';x.fill()}if(!still)requestAnimationFrame(draw)};
   size();addEventListener('resize',size);requestAnimationFrame(draw);
   const menu=document.getElementById('menu'),secs=[...document.querySelectorAll('main > section')];
-  secs.forEach((s,i)=>{s.id='lesson-'+(i+1);const t=s.querySelector('.lesson').textContent.split('·')[1]||('Lesson '+(i+1));const a=document.createElement('a');a.href='#'+s.id;a.textContent=(i+1)+' · '+t.trim().split(/ & | \(|,/)[0];menu.append(a)});
+  secs.forEach((s,i)=>{s.id='lesson-'+(i+1);const t=s.querySelector('.lesson').textContent.split('·')[1]||('Lesson '+(i+1));const a=document.createElement('a');a.href='#'+s.id;a.textContent=t.trim().split(/ & | \(|,/)[0];menu.append(a)});
   const links=[...menu.children];
   const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;links.forEach(l=>l.classList.toggle('on',l.getAttribute('href')==='#'+e.target.id));const on=menu.querySelector('.on');if(on)menu.scrollTo({left:on.offsetLeft-16,behavior:'smooth'})}),{rootMargin:'-40% 0px -55% 0px'});
   secs.forEach(s=>io.observe(s));
+  // Fade each section in as it scrolls into view (bars in Lesson 8 grow too)
+  const rv=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rv.unobserve(e.target)}}),{threshold:.12});
+  secs.forEach(s=>{s.classList.add('reveal');rv.observe(s)});
 })();
 
 (function(){

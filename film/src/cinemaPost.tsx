@@ -46,7 +46,7 @@ export const CameraRig: React.FC<{ frame: number; rms: number; children: React.R
     <AbsoluteFill
       style={{
         transform: `translate(${dx + whip}px, ${dy}px) rotate(${rot}deg) scale(${scale})`,
-        filter: `blur(${blur}px) contrast(1.18) saturate(1.3) brightness(1.04)`,
+        filter: `blur(${blur}px) contrast(1.12) saturate(1.15) brightness(1.03)`,
         transformOrigin: "50% 50%",
       }}
     >
@@ -61,7 +61,7 @@ const Grade: React.FC = () => (
     <AbsoluteFill
       style={{
         mixBlendMode: "soft-light",
-        background: "linear-gradient(180deg, rgba(0,90,110,0.55) 0%, rgba(0,0,0,0) 45%, rgba(255,140,50,0.45) 100%)",
+        background: "linear-gradient(180deg, rgba(0,90,120,0.30) 0%, rgba(0,0,0,0) 45%, rgba(255,150,70,0.22) 100%)",
       }}
     />
     <AbsoluteFill

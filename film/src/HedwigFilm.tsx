@@ -216,8 +216,8 @@ const S5: React.FC<{ t: number }> = ({ t }) => {
       <GodRays t={t} x={50 + win * 12} y={30} opacity={win} />
       <AbsoluteFill style={{ perspective: 1600 }}>
         <div style={{ position: "absolute", left: "50%", top: "50%", transformStyle: "preserve-3d", transform: `translate(-50%,-50%) rotateY(${(1 - enter) * 30 - win * 6}deg)` }}>
-          <div style={{ WebkitMaskImage: `radial-gradient(circle at 50% 100%, transparent ${burn * 130}%, #000 ${burn * 130 + 6}%)`, maskImage: `radial-gradient(circle at 50% 100%, transparent ${burn * 130}%, #000 ${burn * 130 + 6}%)` }}>
-            <Page title="REJECTED" accent={C.rose} body="the the key was key. Lily tree tree the went went and." style={{ left: -620 - enter * 40, top: -350, transform: `rotateY(18deg) translateZ(${-burn * 200}px)`, filter: `sepia(${burn}) brightness(${1 - burn * 0.4})` }} />
+          <div>
+            <Page title="REJECTED" accent={C.rose} body="the the key was key. Lily tree tree the went went and." style={{ left: -620 - enter * 40, top: -350, transform: `rotateY(18deg) translateZ(${-burn * 200}px)`, filter: `sepia(${burn}) brightness(${1 - burn * 0.4})`, WebkitMaskImage: `radial-gradient(circle at 50% 100%, transparent ${burn * 130}%, #000 ${burn * 130 + 6}%)`, maskImage: `radial-gradient(circle at 50% 100%, transparent ${burn * 130}%, #000 ${burn * 130 + 6}%)` }} />
           </div>
           <Page title="CHOSEN" accent={C.gold} body="Pip found the shiny key under the old oak tree, and she shared it with Lily." style={{ left: 60 + enter * 40 - win * 380, top: -350, transform: `rotateY(${-18 + win * 18}deg) translateZ(${win * 160}px) scale(${1 - big * 0.18})`, boxShadow: `0 60px 140px rgba(0,0,0,0.65), 0 0 0 3px ${C.gold}, 0 0 ${120 * win}px rgba(255,190,80,0.6)` }} />
         </div>
