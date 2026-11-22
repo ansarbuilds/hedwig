@@ -119,3 +119,4 @@ You can also add your own notes under any day (pull first, then edit, commit, pu
 
 ## 2026-11-22
 - **11:21** Update docs, interactive guide, and film around full Mac-to-GPU LLM story (`c6378be`)
+- **12:58** Replace cartoon owl with animated Snowy Owl across film, banner, guide, web app, and Mac app (`e518ec6`)
