@@ -106,9 +106,10 @@ const CODE = [
   "logits = logits[:, -1, :] / temperature",
   "next_id = torch.multinomial(F.softmax(logits, -1), 1)",
 ];
+const PIPELINE_BADGES = ["BPE", "RoPE + SwiGLU", "SFT", "DPO", "4-bit"];
 const S3: React.FC<{ t: number }> = ({ t }) => {
   const n = 46;
-  const a = k(t, 6, 40), b = k(t, 56, 90);
+  const a = k(t, 6, 40), b = k(t, 56, 90), strip = k(t, 44, 72);
   return (
     <AbsoluteFill style={{ background: "radial-gradient(circle at 50% 50%, #0c1a2a 0%, #020408 65%)" }}>
       <AbsoluteFill style={{ perspective: 700 }}>
@@ -131,6 +132,22 @@ const S3: React.FC<{ t: number }> = ({ t }) => {
         </div>
         <div style={{ fontFamily: F.sans, fontWeight: 800, fontSize: 120, letterSpacing: "-0.03em", color: C.cyan, opacity: b, transform: `scale(${k(t, 56, 74, 1.4, 1)})`, textShadow: deepText(C.cyan, "#06485a", "rgba(94,231,255,0.7)", 12) }}>
           Pure PyTorch.
+        </div>
+        <div style={{ marginTop: 34, display: "flex", alignItems: "center", gap: 12, opacity: strip }}>
+          {PIPELINE_BADGES.map((label, idx) => {
+            const pulse = k(t, 44 + idx * 10, 56 + idx * 10);
+            const active = pulse > 0.4;
+            return (
+              <React.Fragment key={label}>
+                <div style={{ padding: "10px 20px", borderRadius: 999, fontFamily: F.mono, fontSize: 21, fontWeight: 600, color: active ? "#04121a" : C.cyan, background: active ? `linear-gradient(90deg, ${C.gold}, ${C.goldHot})` : "rgba(2, 8, 18, 0.78)", border: `1px solid ${active ? C.goldHot : "rgba(94,231,255,0.45)"}`, boxShadow: active ? `0 0 28px rgba(245,184,65,0.6)` : "0 4px 18px rgba(0,0,0,0.6)", transform: `scale(${0.92 + pulse * 0.1})` }}>
+                  {label}
+                </div>
+                {idx < PIPELINE_BADGES.length - 1 && (
+                  <span style={{ fontFamily: F.mono, fontSize: 22, color: C.ivory, opacity: 0.7 }}>→</span>
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -261,6 +278,9 @@ const S6: React.FC<{ t: number }> = ({ t }) => {
   const r1 = k(t, 4, 40), r2 = k(t, 52, 92), r3 = k(t, 104, 150);
   const total = k(t, 160, 185);
   const pan = k(t, 0, 216, 220, -260, (u) => u);
+  const gauge = k(t, 20, 60) * (1 - total * 0.85);
+  const horizon = k(t, 104, 140) * (1 - total * 0.8);
+  const gpuFill = k(t, 24, 90);
   return (
     <AbsoluteFill>
       <Sky t={t} panX={pan * 0.3} top="#03040c" bottom="#22264a" />
@@ -271,6 +291,24 @@ const S6: React.FC<{ t: number }> = ({ t }) => {
           <Monolith x={1280} w={340} h={640} color={C.gold} rise={r3} label="287M" sub="RTX 4090 · $1.70" />
         </div>
       </AbsoluteFill>
+      {/* dashed frontier horizon line safely below top letterbox */}
+      <div style={{ position: "absolute", left: 140, right: 140, top: 108, opacity: horizon }}>
+        <div style={{ borderTop: "2px dashed rgba(251,113,133,0.72)" }} />
+        <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-start", gap: 18, fontFamily: F.mono, fontSize: 20, letterSpacing: "0.06em", color: C.rose, textShadow: "0 2px 14px rgba(0,0,0,0.95)" }}>
+          <span>▲ GPT / CLAUDE FRONTIER SCALE:</span>
+          <span style={{ color: C.ivory }}>100B+ KNOBS · 10,000+ GPUS · $100M+</span>
+        </div>
+      </div>
+      {/* Mac M4 vs Cloud GPU 26x speed gauge above left 14M monolith */}
+      <div style={{ position: "absolute", left: 140, top: 184, width: 640, padding: "16px 22px", ...glass(C.cyan), opacity: gauge }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: F.mono, fontSize: 18, color: C.cyan, letterSpacing: "0.06em" }}>
+          <span>MAC M4: 59m → CLOUD GPU: 135s</span>
+          <span style={{ color: C.goldHot, fontWeight: 700 }}>26× FASTER</span>
+        </div>
+        <div style={{ marginTop: 10, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+          <div style={{ width: `${gpuFill * 100}%`, height: "100%", borderRadius: 4, background: `linear-gradient(90deg, ${C.indigo}, ${C.cyan}, ${C.goldHot})`, boxShadow: `0 0 18px ${C.cyan}` }} />
+        </div>
+      </div>
       {/* glossy floor reflection */}
       <AbsoluteFill style={{ top: "auto", height: 170, background: "linear-gradient(180deg, rgba(120,130,220,0.18), rgba(3,4,12,0.95))" }} />
       <Fog t={t * 2} y={72} color="170,180,255" />

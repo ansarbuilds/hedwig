@@ -1,56 +1,38 @@
 # 🦉 Hedwig — Video & Full Documentation Storyboard
 
-A ready-to-film outline for telling the whole Hedwig story in plain English, from Day 1 on a MacBook Air M4 to scaling up on a rented cloud GPU and open-sourcing it.
+A complete storyboard telling Hedwig's real journey in plain English: trying to build an LLM from scratch on a MacBook Air, hitting the laptop wall, renting NVIDIA GPUs that run 26× faster, growing to 286.7M knobs for $2.45, and comparing honestly against GPT & Claude.
 
 ---
 
-## Act 1 — The Hook (0:00–0:45)
-* **Opening line:** *"Can you build a tiny ChatGPT from scratch on a regular MacBook Air — no Hugging Face Trainer, no APIs, just pure PyTorch — and actually watch how it thinks?"*
-* **On screen:** Live recording of `app.py` (`http://127.0.0.1:8000`) streaming a bedtime story at ~89 tokens/sec, then clicking a word to open the **🔬 Brain X-Ray** showing the top-5 next word-pieces.
-* **The scale anchor:** Hedwig is **14 million** knobs (GPT-2 small is **124 million**, GPT-3 is **175 billion**, ChatGPT has read a huge slice of the web). Hedwig fits in **7.9 MB** at 4-bit and runs 100% offline.
+## Act 1 — The Hook: My Try at Building an LLM From Scratch
+* **Opening line:** *"Everyone uses ChatGPT and Claude — so I wanted to try building my own LLM from scratch in pure PyTorch, starting from zero knobs on a MacBook Air, to see how it really works."*
+* **On screen:** Live recording of `app.py` (`http://127.0.0.1:8000`) streaming a story word-by-word, clicking a word to open **🔬 Brain X-Ray**, and the 60-second launch film (`film/out/hedwig-demo.mp4`).
 
-## Act 2 — Day 1 to Modern Transformer on a MacBook Air (0:45–2:30)
-* **Day 1 (`v1`):** 4.8M character-level GPT guessing one letter at a time on Tiny Shakespeare (`loss 4.388 → 1.481`).
-* **Teaching it words (`tokenizer.py`):** Built a 4,096-piece BPE tokenizer from scratch (`3.87` chars/piece).
-  * *Great visual moment:* Show `"Once upon a time, a little owl named Hedwig..."` split into pills in `how-hedwig-learns.html`.
-* **Modernizing the engine (`tinygpt.py`):** Upgraded one piece at a time (2018 GPT-2 → 2026 Llama/nanochat style): `RoPE → RMSNorm → SwiGLU → bf16 → SDPA`.
-* **More stories = smarter brain (`more_english.py`):**
-  * 50 MB TinyStories + 10 public-domain novels → quiz score **2.080**
-  * 200 MB stack → **2.010**
-  * Partial read of the full 1.92 GB shelf → **1.795**
+## Act 2 — What I Built on My MacBook Air M4 (`$0.00`)
+* **Day 1 (`v1`, 4.8M):** Character-level GPT guessing 1 letter at a time on Tiny Shakespeare (`loss 4.388 → 1.483`).
+* **From-scratch BPE Tokenizer (`tokenizer.py`):** 4,096 word-pieces (`3.87` chars/piece), packing ~1,000 characters into 256 slots.
+* **Modernizing the Transformer (`tinygpt.py`):** Upgraded one piece at a time (`RoPE → RMSNorm → SwiGLU → bf16 → SDPA`), measuring each — catching that `RMSNorm` ran 30% slower than `LayerNorm` on Apple `mps`.
+* **All 3 ChatGPT stages on Mac (13.8M):**
+  * **Pretrain (`tinygpt.py` + `more_english.py`):** `8.501 → 2.080 → 2.010 → 1.795` on TinyStories + 10 Gutenberg novels.
+  * **SFT (`sft.py`):** `13,852` instruction pairs with `-100` prompt loss masking (`1.438`).
+  * **DPO (`dpo.py`) & Reward Hacking blooper:** Pure DPO cheated by cramming `"Lily's"` into every 3rd word (*"Lily loves Lily's key. Lily does Lily's mom's idea..."*). A Llama-3-style fluency anchor closed the cheat (`92.5%` peak win-rate).
+  * **4-bit compression (`quantize.py`) & Mac Lab:** Shrank 7× (`27.8 MB → 7.9 MB`), KV cache doubled speed (`47 → 89 tok/s`), plus MoE (`moe.py`), Baby Hedwig distillation (`distill.py`), Apple MLX (`6×` faster), SSD streaming (`ssd_runner.py`), Core ML iPhone export, and French Hedwig.
 
-## Act 3 — The 3 Stages of ChatGPT + Funny Failures (2:30–4:30)
-* **Stage 1 (Pretrain):** Autocomplete storyteller (`brain.pt`, `1.795`).
-* **Stage 2 (SFT / Chat Manners, `sft.py`):** Taught `User: ... → Hedwig: ...` on 13,852 story prompts with `-100` prompt masking (`1.806 → 1.438`).
-* **Stage 3 (DPO / Taste, `dpo.py`):** Showed 👍 on-topic stories vs 👎 off-topic/repetitive stories.
-  * *Funny blooper #1 — Reward Hacking:* Pure DPO discovered a loophole and wrote `"Lily loves Lily's key. Lily does Lily's mom's idea..."` to game the score! Adding a fluency anchor fixed it cleanly (`1.422 → 1.297`, **92.5%** peak win-rate).
-* **Shrinking it 7× (`quantize.py`):** Packed 2 knobs per byte (4-bit) — `27.8 MB → 7.9 MB` with almost zero quality loss (`1.4666 → 1.4897`).
-* *Funny blooper #2 — Why 14M is still tiny:* Asking for **"Harry Potter"** produced a story about **Timmy and a big pot of soup** — because `"potter"` got chopped into `pot` + `ter`, and Hedwig latched onto `pot` → `potatoes` → `pot of soup`!
+## Act 3 — Why the Mac Wasn't Enough
+* **The Compute Wall:** Training work = `6 × knobs × tokens`. Full TinyStories takes ~20 hours on M4 and the fanless Air thermally throttles (`66s → 110s` per 250 steps). A 100M+ brain would take weeks.
+* **The 4k Vocabulary Ceiling (Funny Failure):** Asking 14M Hedwig for **"Harry Potter"** chopped `"Potter"` into `"pot"` + `"ter"` — so Hedwig wrote about **Timmy and a big pot of soup** (or turned Harry into a puppy talking to `"Potus"`), and dropped the frog in Lily's red umbrella prompt.
 
-## Act 4 — Side Quests on the M4 (4:30–5:45)
-Quick montage of the 5 Mac experiments (all `$0`):
-1. **Mixture-of-Experts (`moe.py`):** 8 specialist experts, only 2 awake per word (`26.2M` total / `11.6M` active).
-2. **Baby Hedwig (`distill.py`):** Distilled a `3.4M` (`6.8 MB`) student from the `13.8M` teacher.
-3. **Apple MLX (`mlx_bench.py`):** Same brain ran **6× faster** per training step (`596 ms → 99 ms`) with identical greedy output.
-4. **SSD Layer Streaming (`ssd_runner.py`):** Loaded 1 layer at a time from disk (`52.9 MB → 18.8 MB` weights in RAM).
-5. **iPhone Core ML (`export_iphone.py`) & French Hedwig (`lang_hedwig.py`):** 30/30 exact piece match on Core ML + a separate 2.56M French brain on Dumas & Verne.
+## Act 4 — Why Rented GPUs Are 26× Faster & What We Improved (`$2.45`)
+* **Zero wasted minutes:** Rehearsed locally first (`bash cloud_train.sh --dry-run`, 92s).
+* **The 26× speed jump:** On the exact same 50 MB lesson, 1× RTX A5000 (`$0.10`) finished in **135 seconds vs ~59 minutes on the Mac Air** thanks to `bf16` Tensor Cores, native CUDA FlashAttention, dedicated high-bandwidth VRAM, and active cooling.
+* **Scaling up (`97.6M` & `286.7M`):**
+  * **97.6M on 1× NVIDIA A40 (`$0.65`, 66 min):** 8k vocab, 614 MB TinyStories + FineWeb-Edu + CoEdIT grammar → SFT `1.336`, DPO **`96.7%`**. Kept `"Harry Potter"` intact and switched to single-sentence grammar edits!
+  * **286.7M on 1× RTX 4090 (`$1.70`, 115 min):** 16k vocab, 512 context, 1.22 GB + 71,906 SFT pairs → DPO **`98.3%`**. Nailed multi-part stories (Lily + red umbrella + frog; Bob & Sue building a treehouse through a storm; baby owl + dark + moon) and wrote the 84s movie *Pip and the Lost Key*.
 
-## Act 5 — Renting a Real Cloud GPU & The Big Scale-Up (5:45–7:00)
-* **Smoke test on RunPod:** Rented 1× RTX A5000 (`$0.28/hr`, spent `~$0.10`). What took **59 minutes** on the Mac finished in **2 minutes 15 seconds** (**26× faster**). Show `docs/images/runpod-pod-running.png` and `docs/images/runpod-first-train.png`.
-* **The Finale (record after your next RunPod run):** `bash cloud_train.sh --124m` — scaling Hedwig from **14M → 91.3M knobs** (~`$1–$2`), then comparing **14M vs 91M** side-by-side on the exact same prompts in `app.py`.
+## Act 5 — Hedwig vs. GPT & Claude (How Frontier Models Train)
+* **Visual scale comparison:** Same Transformer and 3-stage recipe (`Pretrain → SFT → DPO/RLHF`).
+* **The cluster & reading gap:** Flagship Hedwig used **1× RTX 4090** across **~205M tokens (`0.7` tokens/knob)** for `$1.70`. Llama 3 405B used **16,384× H100 GPUs** across **15.6 trillion tokens (`~38.5` tokens/knob)**. Frontier GPT-4/5 and Claude Opus models use **10,000–100,000+ GPUs** across **10T–20T+ tokens** + deep RL post-training for **$50M–$500M+**.
 
-## Act 6 — End Product & Open Source (7:00–7:30)
-* Show `docs/images/hedwig-next-steps-board.png`.
-* **Use:** Offline, private, kid-safe bedtime storyteller + interactive Brain X-Ray learning tool.
-* **Open Source:** MIT-licensed code on GitHub + weights & live demo on Hugging Face.
-
----
-
-## B-Roll / Asset Checklist
-- [x] `docs/LEARNINGS.md` (all 32 measured milestones)
-- [x] `how-hedwig-learns.html` (updated through Stage 3, Mac experiments, & RunPod)
-- [x] `docs/images/runpod-pod-running.png` & `docs/images/runpod-first-train.png`
-- [x] `docs/images/hedwig-next-steps-board.png` (strategy & next-steps visual board)
-- [ ] 20-second screen recording of `app.py` streaming + clicking a word for **🔬 Brain X-Ray**
-- [ ] Screenshot of the `"Harry Potter"` → `"potatoes / pot of soup"` prompt + X-Ray
-- [ ] Side-by-side recording of **14M vs 91M** after the RunPod `--124m` run
+## Act 6 — What I Learnt & Open Source
+* Five plain lessons: (1) change one thing and measure, (2) rising loss/win-rate can hide reward hacking, (3) reading tokens/knob beats raw parameter count (`97.6M` beat under-read `286.7M` on grammar), (4) compare stories across vocabs not raw loss, (5) dry-run locally before renting GPUs.
+* MIT code on GitHub, weights on Hugging Face (`hedwig-97m`, `hedwig-300m`), live browser demo written in pure JS (`40/40` match with PyTorch).

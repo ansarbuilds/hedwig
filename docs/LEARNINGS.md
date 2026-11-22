@@ -1,6 +1,22 @@
 # What I learned building Hedwig
 
-Notes from the first session (Nov 2026). Numbers marked "rough" are estimates, not measurements.
+Notes from building Hedwig from scratch (Nov 2026). Numbers marked "rough" or "est." are estimates, not measurements.
+
+## Executive Summary: The Whole Journey in 7 Answers
+
+1. **Why I tried to create my own LLM:** I wanted to build a ChatGPT-style model completely from scratch — pure PyTorch, no `Trainer`, no black-box shortcuts — so every piece (`tokenizer.py`, `tinygpt.py`, `sft.py`, `dpo.py`, `quantize.py`) stays visible and measurable.
+2. **What I did on my MacBook Air M4 (`$0.00`):** Started at 4.8M character-level Shakespeare (`4.388 → 1.483`), wrote a 4,096-piece BPE tokenizer (`3.87` chars/piece), upgraded the model one modern block at a time (`RoPE → RMSNorm → SwiGLU → bf16 → SDPA`), trained a 13.8M storyteller (`8.501 → 2.080 → 2.010 → 1.795`), taught chat manners (`sft.py`, `1.438`), caught and fixed DPO reward hacking (`dpo.py`, `92.5%` peak win-rate), compressed weights 7× to 4-bit (`7.87 MB`), doubled inference speed with a KV cache (`47 → 89 tok/s`), built an offline Mac app with **🔬 Brain X-Ray**, and ran five $0 lab experiments (MoE, distillation, Apple MLX, SSD layer streaming, iPhone Core ML, French).
+3. **Why the Mac wasn't enough:**
+   - *Compute wall:* Training FLOPs ≈ `6 × knobs × tokens`. A full pass over 1.92 GB TinyStories takes ~20 hours on the M4 Air, and the fanless chassis throttles (`66s → 110s` per 250 steps). Training a 100M+ brain locally would take weeks.
+   - *Small-brain ceiling:* At 13.8M knobs and a 4k dictionary, `"Harry Potter"` splits into `"pot"` + `"ter"`, turning Harry into a puppy or Timmy with a pot of soup, and multi-part prompts drop details (e.g. forgetting the frog in Lily's red umbrella story).
+4. **Why I went for rented GPUs & why they're 26× faster:** Rehearsed first via `bash cloud_train.sh --dry-run` (92s on M4) so zero rented minutes went to debugging. On the exact same 50 MB lesson, a single NVIDIA RTX A5000 (`$0.28/hr`, ~$0.10) ran in **135 seconds vs ~59 minutes on the Mac** (**26× faster**) because of thousands of dedicated `bf16` Tensor Cores, native CUDA FlashAttention, high-bandwidth dedicated VRAM (`24–48 GB`), and active data-center cooling.
+5. **What we built on RunPod & how much we improved (`$2.45` total):**
+   - `13.8M Mac ($0)` → `97.6M NVIDIA A40 ($0.65, 66 min, 8k vocab, CoEdIT grammar)` → `286.7M RTX 4090 ($1.70, 115 min, 16k vocab, 512 ctx)`.
+   - Stage 3 preference win-rate rose `92.5% → 96.7% → 98.3%`. `97.6M` kept `"Harry Potter"` as a boy and learned single-sentence grammar edits; `286.7M` mastered multi-part plots (Lily + red umbrella + frog; Bob & Sue's treehouse; baby owl + stars + moon).
+6. **How Hedwig compares to GPT & Claude models:** Same core Transformer + 3-stage recipe (`Pretrain → SFT → DPO/RLHF`). The gap is cluster scale and reading volume: Flagship Hedwig trained on **1× RTX 4090** across **~205M tokens (`~0.7` tokens/knob)** for **$1.70**. GPT-3 (175B) used ~1k–10k V100s (~300B tokens); **Llama 3 405B** used **16,384× NVIDIA H100 GPUs** across **15.6 trillion tokens (~38.5 tokens/knob)**; frontier **GPT-4/5 & Claude Opus** clusters train on **10,000–100,000+ H100/B200 GPUs** across **10T–20T+ tokens** + deep RL post-training for **$50M–$500M+**.
+7. **What I learnt:** (a) Change one thing at a time and measure (`RMSNorm` was 30% slower on Apple `mps` than `LayerNorm`); (b) Rising metrics can lie (`"Lily's"` reward hack); (c) Reading beats knob count under Chinchilla (better-read `97.6M` beat under-read `286.7M` on grammar edits); (d) Never compare raw loss across different vocab sizes — compare real stories side-by-side; (e) Always `--dry-run` before renting GPUs.
+
+---
 
 ## 1. What an LLM is
 

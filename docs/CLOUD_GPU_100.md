@@ -1,91 +1,68 @@
-# Spending $100 on cloud GPUs to learn
+# Spending $100 on cloud GPUs to learn (Actual spend: $2.45)
 
-Prices are rough (late 2026) and change often. Always check the provider's current price.
+We budgeted **$100** (deposited **$15.00** on RunPod) and ended up building three complete cloud brains for **$2.45 total**, leaving **~$12.55** in credit.
 
-## How renting works
-1. Make an account on a provider and add a card (set a spending limit if offered).
-2. Pick a machine (e.g. "1× H100" or "8× H100") and click Start.
-3. Connect from your Mac: SSH from Terminal, or a browser notebook/terminal.
-4. `git clone` this repo, install deps, train.
-5. **Copy the results back before stopping** (`scp` / `rsync`, or push weights to Hugging Face).
-6. **Stop / Terminate the machine.** Billing continues until you do. Delete leftover volumes too.
+## Why renting GPUs was 26× faster than the MacBook Air M4
 
-## Providers
-| Provider | Notes |
-|---|---|
-| Google Colab | Free tier GPU in the browser; great for first experiments; sessions time out |
-| RunPod | Simple per-hour pods; community cloud is cheaper |
-| Lambda | Clean H100 / 8×H100 instances; often what nanochat docs assume |
-| Vast.ai | Marketplace; cheapest, more variable reliability |
+Training FLOPs scale as `6 × knobs × tokens`. On a fanless MacBook Air M4 (8-core laptop GPU), training throttles from `~66s` to `~110s` per 250 steps as the chip heats up, so a 100M+ model takes **weeks**. On a rented NVIDIA data-center GPU, the exact same 50 MB lesson (`13.8M` knobs, 3,000 steps) dropped from **~59 minutes on M4** to **135 seconds on one RTX A5000 (`26× faster`)** for four concrete hardware reasons:
 
-Rough prices: RTX 4090/5090 ~$0.30–0.70/hr · A100 ~$1–2/hr · H100 ~$2–4/hr · 8×H100 ~$16–30/hr.
+1. **Thousands of Tensor Cores:** Purpose-built matrix multiplication units executing `bfloat16` math in parallel every clock cycle.
+2. **Native CUDA FlashAttention:** `F.scaled_dot_product_attention` runs fused FlashAttention kernels directly in fast on-chip SRAM instead of writing full `T × T` attention matrices to memory.
+3. **High-Bandwidth Dedicated VRAM:** `48 GB` on an A40 and `24 GB` on an RTX 4090 push hundreds of GB/s straight to compute cores without sharing memory bandwidth with macOS.
+4. **Active Data-Center Cooling:** Runs at 100% power for hours with zero thermal throttling.
 
-## Suggested $100 plan
-| Step | Machine | Time | Rough cost | Goal |
-|---|---|---|---|---|
-| 1. Smoke test | 1× cheap GPU (4090) | 1 hr | ~$1 | Learn SSH, clone, install, run `tinygpt.py` |
-| 2. Scale Hedwig up | 1× H100 | a few hours; stop early if you want | ~$5–15 | 91.3M knobs, 20,000 steps, one read of 500 MB |
-| 3. nanochat speedrun | 8× H100 | ~2–3 hr | ~$40–75 | Full pretrain → SFT → chat pipeline |
-| Reserve | — | — | ~$20 | Mistakes, re-runs, forgotten-to-stop insurance |
+## How Hedwig's 1 GPU compares to GPT & Claude clusters
 
-Tip: debug everything on the Mac or a cheap GPU first. Only rent 8×H100 when the script already runs end to end.
+Hedwig uses the same Transformer + 3-stage recipe (`Pretrain → SFT → DPO/RLHF`). Frontier models aren't running a completely different algorithm — they scale the exact same loop across **10,000–100,000+ GPUs** connected via NVLink/InfiniBand so they can read **20–40+ tokens per knob** across trillions of web pages, code, and books:
 
-## Safety checklist (read before every run)
-- [x] Code already tested locally on a tiny config (`bash cloud_train.sh --dry-run`, 92 s, real brains untouched)
-- [x] Checkpoints save regularly, and a second launch resumes instead of deleting them (`--fresh` is the only way to wipe saves)
-- [x] Results copied home (Jupyter: `cp /hedwig/brain*.pt /workspace/`, then Download). On this pod the clone was in `/hedwig` because the terminal started at `/`, not in the home folder.
-- [x] Machine **stopped**, dashboard showed **$0.00/hr**. Balance **$15.00 → $14.90**. Press **Terminate** (not Start) to delete the pod. Delete the fine-grained token `hedwig-cloud` afterward.
+| Model | Knobs | GPUs Used | Tokens Read | Tokens / Knob | Time | Cost (est.) |
+|---|---:|---|---:|---:|---:|---:|
+| **Mac Hedwig** | `13.8M` | 1× MacBook Air M4 | `~125M` | `~9.0` | ~3 hrs | **$0.00** |
+| **Cloud Hedwig** | `97.6M` | 1× NVIDIA A40 (`48 GB`) | `~164M` | `~1.7` | 66 min | **$0.65** |
+| **Flagship Hedwig** | `286.7M` | 1× NVIDIA RTX 4090 (`24 GB`) | `~205M` | `~0.7` | 115 min | **$1.70** |
+| **GPT-2 Small** *(2019)* | `124M` | 32× Cloud TPU v3 | `~10B` | `~80` | Days | `~$1k–$5k` |
+| **GPT-3** *(2020)* | `175B` | ~1,000–10,000× V100 | `~300B` | `~1.7` | Weeks | `~$4.6M` |
+| **Llama 3 405B** *(2024)* | `405B` | **16,384× NVIDIA H100** | `15.6T` | `~38.5` | ~54 days | `~$50M+` |
+| **GPT-4/5 · Claude Opus** | `1T+` *(est.)* | **10,000–100,000+ H100/B200** | `10T–20T+` | `~20+` + deep RL | Months | `$50M–$500M+` |
 
-## What the first hour looks like
+---
 
-The pod list while the small recipe is running on one RTX A5000 ($0.28/hour). The green dot means the rented computer is on. The meter stays on until you press Stop.
+## Completed Cloud Runs (Measured, 20 Nov 2026)
+
+| Run | GPU & Rate | Duration | Actual Cost | Model & Vocab | Measured Scores | Local Copy / HF Backup |
+|---|---|---|---|---|---|---|
+| **1. Smoke Test** (`bash cloud_train.sh`) | 1× RTX A5000 (`$0.28/hr`) | ~4 min total (`135s` pretrain) | **`~$0.10`** | `13.8M` (`4,096` BPE, 50 MB) | Stage 1 `2.100`, SFT `1.758`, DPO `91.7%` | `cloud_brains/` (local) |
+| **2. Cloud Hedwig** (`bash cloud_train.sh --124m`) | 1× NVIDIA A40 (`$0.59/hr`) | ~66 min (`57m` pretrain) | **`~$0.65`** | **`97.6M`** (`8,192` BPE, 614 MB + CoEdIT) | Stage 1 `2.619`, SFT **`1.336`**, DPO **`1.235` (`96.7%` peak)**, 4-bit `55.2 MB` | `cloud_brains_97m/` · `ansarbuilds/hedwig-97m` |
+| **3. Flagship Hedwig** (`bash cloud_train.sh --300m`) | 1× RTX 4090 (`$0.89/hr`) | ~115 min | **`~$1.70`** | **`286.7M`** (`16,384` BPE, 512 ctx, 1.22 GB + 30k CoEdIT) | Stage 1 `2.998`, SFT `1.341`, DPO **`1.200` (`98.3%` win)**, 4-bit `161.9 MB` | `cloud_brains_300m/` · `ansarbuilds/hedwig-300m` |
+| **Total** | | **~3 hours** | **`$2.45`** | | | |
+
+---
+
+## How renting safely works (and why zero minutes were wasted)
+
+1. **Always rehearse locally first:** `bash cloud_train.sh --dry-run` copies the scripts into `dry_run/` and trains for 2 steps on 4 MB (`92 s` on M4), verifying data prep, checkpoint saving, and `--resume` without touching real Mac weights or spending cloud money.
+2. **Providers & rough rates (late 2026):** RunPod (used here: RTX A5000 `$0.28/hr`, A40 `$0.59/hr`, RTX 4090 `$0.89/hr`), Lambda (`H100 ~$2–4/hr`, `8×H100 ~$16–30/hr`), Vast.ai, Google Colab.
+3. **Copy results before terminating:** Transfer weights via `scp` / Jupyter / `upload_hf.py`, then press **Stop** (`$0.00/hr`) and **Terminate** so billing stops completely.
 
 ![RunPod pod running](images/runpod-pod-running.png)
-
-The black window after the project has downloaded and `bash cloud_train.sh` has started. It is fetching the children's stories and the public-domain novels. The password was typed at the prompt and does not appear in the picture.
-
 ![First cloud training log](images/runpod-first-train.png)
 
-## 20 Nov 2026 smoke test (measured)
-
-One RTX A5000 on RunPod, PyTorch 2.8 template, **$0.28/hr**. Command: `bash cloud_train.sh` (the 13.8M student, 50 MB of TinyStories plus the same 10 novels). Not `--124m`.
-
-| Lesson | What it trained on | Score | Time |
-|---|---|---|---|
-| Reading | 50 MB TinyStories + 10 novels, 14,069,966 train pieces | 8.470 → **2.100** (best at step 2,250) | 135 s |
-| Manners | TinyStories-Instruct, 15,127 pairs | 2.073 → **1.758** | 81 s |
-| Taste | same pairs, good story vs off-topic or repetitive | win-rate 0% → **91.7%** | 23 s |
-
-8-bit barely changed the manners score (1.7864 → 1.7864). 4-bit went to 1.8026. The taste brain was 1.7952 at 16-bit and 1.8108 at 4-bit.
-
-Example from the taste brain, prompt about a key in the garden: "Once upon a time, there was a little girl named Lily. She had long hair that she loved to brush every day. One day, she found her big key in the garden..."
-
-The Mac's first reading of this same 50 MB pile took ~59 minutes and scored 2.080. This chip scored 2.100 in 135 seconds. The Mac file `brain.pt` at 1.795 is still the better reader, because it later saw much more than 50 MB. The rented copies live only in `cloud_brains/` and must not replace `brain.pt`.
+## Safety checklist
+- [x] Code rehearsed locally on tiny config (`bash cloud_train.sh --dry-run`, 92 s, real brains untouched)
+- [x] Atomic `.tmp` checkpoint saves + automatic resume (`--fresh` is the only flag that wipes saves)
+- [x] Weights downloaded locally (`cloud_brains*/`) and backed up to Hugging Face (`ansarbuilds/hedwig-97m`, `ansarbuilds/hedwig-300m`)
+- [x] Pods stopped/terminated (`$0.00/hr`), spend **$2.45 / $15.00** deposited
+- [x] Temporary fine-grained read-only GitHub token (`hedwig-cloud`) used only during cloud clone and revoked afterward
 
 ## Useful commands
 ```bash
-# on the Mac, before spending anything (writes only inside dry_run/)
+# On the Mac, before spending anything (writes only inside dry_run/)
 bash cloud_train.sh --dry-run
 
-# on the rented machine
+# On a rented NVIDIA GPU
 git clone https://github.com/ansarbuilds/hedwig.git && cd hedwig
 bash cloud_train.sh           # 13.8M smoke test
-bash cloud_train.sh --124m    # 91.3M knobs, 20,000 steps (one read of the 500 MB pile)
-bash cloud_train.sh --fresh   # delete checkpoints and prepared data, then start over
-
-# from the Mac: copy the trained brains back BEFORE terminating the pod!
-scp -P <port> root@<host>:~/hedwig/brain*.pt ./
+bash cloud_train.sh --124m    # 97.6M knobs (8k vocab, 614 MB + CoEdIT)
+bash cloud_train.sh --300m    # 286.7M flagship (16k vocab, 512 ctx, 1.22 GB + 30k CoEdIT)
+bash cloud_train.sh --fresh   # wipe checkpoints and prepared data to restart from step 0
 ```
-## The door key (only you can click this)
-
-The project is a private bookshelf. The rented computer is a stranger, so GitHub will not hand it the books until you lend it a temporary library card.
-
-1. On your Mac, open GitHub → Settings → Developer settings → Fine-grained personal access tokens → Generate new token.
-2. Name it `hedwig-cloud`. Set the expiration to 7 days.
-3. Repository access: **Only select repositories** → `hedwig`.
-4. Permissions: **Contents: Read-only**. Nothing else.
-5. Generate, and copy the token once. It looks like a long password. Do not put it in a file in this project, and do not commit it.
-6. On the rented machine, run `git clone https://github.com/ansarbuilds/hedwig.git`. When it asks for a username, type `x-access-token`. When it asks for a password, paste the token. The password prompt does not show what you paste. That is normal.
-7. After the brains are copied home and the machine is terminated, open the token page again and **delete** `hedwig-cloud`.
-
-Your Mac is already logged in as `kmsmohamedansar`, so you do not need this card on the laptop. It is only for the rented computer.
