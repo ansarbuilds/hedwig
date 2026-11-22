@@ -118,6 +118,10 @@ HTML = """<!doctype html>
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);height:100vh;display:flex;flex-direction:column}
 header{padding:14px 20px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.15rem}
+.brand svg{width:38px;height:38px;animation:bob 5s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px)}}
+.brand .lid{transform-origin:center;transform-box:fill-box;animation:blink 6s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(0)}96%{transform:scaleY(1)}}
 .badge{font-family:var(--mono);font-size:.75rem;padding:4px 9px;border-radius:99px;background:var(--surface2);color:var(--amber);border:1px solid var(--line)}
 .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:.88rem;color:var(--muted)}
 select,input[type=text],button{font:inherit;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);padding:8px 12px}
@@ -146,7 +150,7 @@ form input{flex:1;padding:12px 14px;font-size:1rem}
 </head>
 <body>
 <header>
-  <div class="brand">🦉 Hedwig <span class="badge">286.7M Flagship + 97.6M + 14M · 🔬 Brain X-Ray</span></div>
+  <div class="brand"><svg viewBox="-100 -100 200 200" aria-hidden="true"><path d="M-38 78 Q-10 66 26 70 Q54 73 74 91 L66 97 Q28 84 -8 86 Q-28 89 -42 95 Z" fill="#1b243c" stroke="#314169" stroke-width="1.4"/><path d="M-14 -50 C-2 -70 30 -70 42 -48 C48 -36 47 -22 46 -6 C48 24 34 56 -6 66 C-34 72 -52 46 -40 14 C-32 -8 -24 -34 -14 -50 Z" fill="#f7f4ec"/><path d="M8 -14 C26 4 12 36 -18 62 C-46 86 -72 98 -82 96 C-80 76 -64 42 -42 16 C-22 -8 -4 -22 8 -14 Z" transform="translate(24 -10)" fill="#ece6da" stroke="#cfc6b4" stroke-width="1.2"/><g transform="translate(24 -10)" fill="#4e341b" opacity=".82"><path d="M-6 12 l5 1 l-3 4 Z"/><path d="M-18 22 l5 1 l-3 4 Z"/><path d="M-28 32 l5 2 l-3 4 Z"/><path d="M-36 42 l6 2 l-4 4 Z"/><path d="M-44 52 l6 2 l-4 4 Z"/><path d="M-50 62 l5 2 l-3 4 Z"/></g><g transform="rotate(10 2 -40)"><ellipse cx="2" cy="-40" rx="7.6" ry="6.8" fill="#e59200" stroke="#241b11" stroke-width="1.4"/><circle cx="2" cy="-40" r="3.4" fill="#0c0905"/><circle cx=".5" cy="-41.8" r="1.4" fill="#fff"/><ellipse class="lid" cx="2" cy="-40" rx="8.2" ry="7.4" fill="#efe8d8"/></g><g transform="rotate(-10 24 -40)"><ellipse cx="24" cy="-40" rx="7.6" ry="6.8" fill="#e59200" stroke="#241b11" stroke-width="1.4"/><circle cx="24" cy="-40" r="3.4" fill="#0c0905"/><circle cx="22.5" cy="-41.8" r="1.4" fill="#fff"/><ellipse class="lid" cx="24" cy="-40" rx="8.2" ry="7.4" fill="#efe8d8"/></g><path d="M10 -34 Q13 -37 16 -34 L14 -24 Q13 -22 11 -24 Z" fill="#23252b"/></svg> Hedwig <span class="badge">286.7M Flagship + 97.6M + 14M · 🔬 Brain X-Ray</span></div>
   <div class="controls">
     <label>Brain:
       <select id="model">

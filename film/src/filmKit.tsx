@@ -232,8 +232,16 @@ export const RevealText: React.FC<{
   </span>
 );
 
-// ---- Pip the owl (original design) -------------------------------------
-// flap: -1..1 wing angle, blink: 0 open .. 1 shut, look: pupil x offset
+// ---- Pip / Hedwig the Snowy Owl (modeled after real snowy owl portrait) ---
+// flap: -1..1 wing motion, blink: 0 open .. 1 shut, look: pupil x offset
+const SPECKLES: [number, number, number, number][] = [
+  [-6, 12, 4.6, -20], [6, 17, 4.2, -14], [-18, 22, 5.2, -24], [-4, 26, 4.5, -16],
+  [9, 28, 4.0, -10], [-28, 32, 5.4, -26], [-14, 35, 4.8, -20], [1, 37, 4.2, -14],
+  [-36, 42, 5.6, -28], [-22, 45, 5.0, -22], [-7, 47, 4.4, -16], [7, 48, 3.8, -12],
+  [-44, 52, 5.5, -30], [-30, 55, 5.0, -25], [-16, 57, 4.4, -19], [-50, 62, 5.2, -32],
+  [-37, 64, 4.8, -27], [-23, 66, 4.2, -22], [-56, 72, 4.8, -34], [-43, 74, 4.4, -28],
+  [-60, 81, 4.2, -36], [-49, 82, 3.9, -30], [-14, 6, 3.6, -14], [-22, 16, 4.0, -20],
+];
 export const Owl: React.FC<{ size: number; flap?: number; blink?: number; look?: number; glow?: number }> = ({
   size,
   flap = 0,
@@ -241,68 +249,146 @@ export const Owl: React.FC<{ size: number; flap?: number; blink?: number; look?:
   look = 0,
   glow = 1,
 }) => {
-  const wing = flap * 55;
-  const eyeH = 15 * (1 - blink) + 0.8;
+  const flight = Math.min(1, Math.max(0, (Math.abs(flap) - 0.1) * 3.5));
+  const wingTilt = flap * 26;
+  const eyeH = 6.8 * (1 - blink) + 0.7;
   return (
     <svg width={size} height={size} viewBox="-100 -100 200 200" style={{ overflow: "visible" }}>
       <defs>
-        <radialGradient id="owlBody" cx="50%" cy="35%" r="70%">
-          <stop offset="0%" stopColor="#fffaf0" />
-          <stop offset="70%" stopColor="#d9d2c3" />
-          <stop offset="100%" stopColor="#8f8676" />
+        <radialGradient id="snowyBody" cx="58%" cy="24%" r="76%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="68%" stopColor="#f6f2ea" />
+          <stop offset="100%" stopColor="#dcd4c5" />
         </radialGradient>
-        <radialGradient id="owlEye" cx="40%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="#fff2b0" />
-          <stop offset="55%" stopColor={C.gold} />
-          <stop offset="100%" stopColor="#b86a00" />
+        <linearGradient id="snowyWing" x1="82%" y1="12%" x2="10%" y2="96%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="60%" stopColor="#f2ede3" />
+          <stop offset="100%" stopColor="#cec5b5" />
+        </linearGradient>
+        <radialGradient id="snowyEye" cx="38%" cy="38%" r="62%">
+          <stop offset="0%" stopColor="#ffd75e" />
+          <stop offset="55%" stopColor="#db8700" />
+          <stop offset="100%" stopColor="#693000" />
         </radialGradient>
         <filter id="owlGlow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="6" />
+          <feGaussianBlur stdDeviation="4" />
         </filter>
       </defs>
-      {/* wings */}
-      {[-1, 1].map((sd) => (
-        <g key={sd} transform={`translate(${sd * 34} -8) rotate(${sd * (20 + wing)})`}>
+
+      {/* subtle dark perch silhouette under feet when perched (echoing glove/branch silhouette) */}
+      <g opacity={1 - flight * 0.9}>
+        <path
+          d="M-38 78 Q -10 66 26 70 Q 54 73 74 91 L 66 97 Q 28 84 -8 86 Q -28 89 -42 95 Z"
+          fill="#1b243c"
+          stroke="#314169"
+          strokeWidth="1.4"
+        />
+        <path d="M-38 78 Q -18 72 -4 76 L -8 87 Q -24 88 -40 94 Z" fill="#3a5280" opacity="0.7" />
+      </g>
+
+      {/* rear flight wing (extends smoothly only during flight flap) */}
+      {flight > 0.02 && (
+        <g opacity={flight} transform={`translate(-10 -14) rotate(${-28 - flap * 44}) scale(${0.65 + flight * 0.35})`}>
           <path
-            d={`M0 0 Q ${sd * 70} -10 ${sd * 92} 40 Q ${sd * 60} 34 ${sd * 48} 58 Q ${sd * 30} 40 ${sd * 18} 62 Q ${sd * 6} 40 0 52 Z`}
-            fill="url(#owlBody)"
-            stroke="#6f6758"
-            strokeWidth="1.5"
+            d="M0 0 Q -62 -32 -98 6 Q -70 16 -52 38 Q -30 22 -14 42 Q -4 22 0 32 Z"
+            fill="url(#snowyWing)"
+            stroke="#c5bcab"
+            strokeWidth="1.2"
           />
-          {[0, 1, 2].map((r) => (
-            <path
-              key={r}
-              d={`M${sd * (14 + r * 18)} ${14 + r * 4} q ${sd * 6} 10 ${sd * 2} 20`}
-              stroke="#8a8170"
-              strokeWidth="2"
-              fill="none"
-              opacity="0.7"
-            />
+          {[-26, -44, -62, -76].map((sx, idx) => (
+            <path key={idx} d={`M${sx} ${6 + idx * 3} q5 2 3 8 q-4 -3 -3 -8 Z`} fill="#4e341b" opacity="0.75" />
           ))}
         </g>
-      ))}
-      {/* body + head */}
-      <ellipse cx="0" cy="22" rx="46" ry="56" fill="url(#owlBody)" />
-      {[0, 1, 2, 3].map((r) =>
-        [-1, 0, 1].map((c) => (
-          <path key={`${r}${c}`} d={`M${c * 16 - 5} ${30 + r * 12} q5 5 10 0`} stroke="#9b917f" strokeWidth="2" fill="none" />
-        )),
       )}
-      <path d="M-40 -40 L-30 -78 L-14 -52 Z M40 -40 L30 -78 L14 -52 Z" fill="#cfc6b4" />
-      <circle cx="0" cy="-28" r="44" fill="url(#owlBody)" />
-      <circle cx="-19" cy="-30" r="22" fill="#f3ecdc" />
-      <circle cx="19" cy="-30" r="22" fill="#f3ecdc" />
-      {/* eyes with glow */}
-      {[-19, 19].map((ex) => (
-        <g key={ex}>
-          <ellipse cx={ex} cy="-30" rx="17" ry={eyeH + 4} fill={C.gold} opacity={0.6 * glow} filter="url(#owlGlow)" />
-          <ellipse cx={ex} cy="-30" rx="15" ry={eyeH} fill="url(#owlEye)" />
-          <ellipse cx={ex + look * 5} cy="-30" rx="6.5" ry={Math.min(eyeH, 7.5)} fill="#140d02" />
-          <circle cx={ex + look * 5 - 3} cy="-34" r={blink > 0.6 ? 0 : 2.4} fill="#fff" />
+
+      {/* tail primary tips projecting bottom-left */}
+      <g transform="rotate(6)">
+        <path
+          d="M-36 52 L-62 96 Q-55 98 -48 92 L-24 58 Z M-26 56 L-50 98 Q-43 100 -36 93 L-16 62 Z"
+          fill="#e6dfd0"
+          stroke="#c3baa8"
+          strokeWidth="1"
+        />
+        <path d="M-50 78 q4 2 2 6 q-4 -2 -2 -6 Z M-40 82 q4 2 2 6 q-4 -2 -2 -6 Z" fill="#4e341b" opacity="0.78" />
+      </g>
+
+      {/* unified snowy-white silhouette: round crown seamlessly flowing into chest & shoulder */}
+      <path
+        d="M -14 -50 C -2 -70 30 -70 42 -48 C 48 -36 47 -22 46 -6 C 48 24 34 56 -6 66 C -34 72 -52 46 -40 14 C -32 -8 -24 -34 -14 -50 Z"
+        fill="url(#snowyBody)"
+        stroke="#9a9182"
+        strokeWidth="1.35"
+      />
+      <path d="M -6 -58 Q 14 -68 36 -56" stroke="#ffffff" strokeWidth="2.5" fill="none" opacity="0.8" />
+
+      {/* fluffy feathered leg & talons */}
+      <path
+        d="M-10 48 C -14 66 -2 76 14 74 C 24 73 28 60 22 48 Z"
+        fill="#f7f4ec"
+        stroke="#ddd4c4"
+        strokeWidth="1"
+      />
+      <path
+        d="M2 72 Q -2 80 4 82 M10 73 Q 10 82 16 82 M18 71 Q 22 79 26 78"
+        stroke="#22252e"
+        strokeWidth="3.1"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* folded diagonal foreground wing with authentic brown-speckled feathers */}
+      <g transform={`translate(24 -10) rotate(${wingTilt})`}>
+        <path
+          d="M 8 -14 C 26 4 12 36 -18 62 C -46 86 -72 98 -82 96 C -80 76 -64 42 -42 16 C -22 -8 -4 -22 8 -14 Z"
+          fill="url(#snowyWing)"
+          stroke="#d5ccbc"
+          strokeWidth="1.1"
+        />
+        {/* primary feather overlap lines */}
+        <path
+          d="M -24 26 Q -52 58 -76 92 M -14 34 Q -40 62 -64 88"
+          stroke="#c8bfb0"
+          strokeWidth="1"
+          fill="none"
+          opacity="0.7"
+        />
+        {SPECKLES.map(([x, y, s, rot], idx) => (
+          <path
+            key={idx}
+            d={`M${x} ${y} Q${x + s} ${y + s * 0.25} ${x + s * 0.4} ${y + s * 1.1} Q${x - s * 0.2} ${y + s * 0.6} ${x} ${y} Z`}
+            fill={idx % 3 === 0 ? "#3f2713" : "#5a3d21"}
+            opacity={0.86 - (idx % 4) * 0.08}
+            transform={`rotate(${rot} ${x} ${y})`}
+          />
+        ))}
+      </g>
+
+      {/* subtle facial disc shading (no harsh chin outline) */}
+      <path
+        d="M -6 -28 Q 14 -16 34 -28 M -10 -46 Q 14 -56 38 -46"
+        stroke="#e6decb"
+        strokeWidth="1.1"
+        fill="none"
+        opacity="0.45"
+      />
+
+      {/* expressive almond golden-amber snowy owl eyes with dark upper brow */}
+      {[
+        { ex: 2, ey: -40, tilt: 10 },
+        { ex: 24, ey: -40, tilt: -10 },
+      ].map(({ ex, ey, tilt }) => (
+        <g key={ex} transform={`rotate(${tilt} ${ex} ${ey})`}>
+          <ellipse cx={ex} cy={ey} rx="8.5" ry={eyeH + 1.5} fill={C.gold} opacity={0.35 * glow} filter="url(#owlGlow)" />
+          <ellipse cx={ex} cy={ey} rx="7.6" ry={eyeH} fill="url(#snowyEye)" stroke="#241b11" strokeWidth="1.4" />
+          <ellipse cx={ex + look * 2.8} cy={ey} rx="3.4" ry={Math.min(eyeH, 3.9)} fill="#0c0905" />
+          <circle cx={ex + look * 2.8 - 1.5} cy={ey - 1.8} r={blink > 0.6 ? 0 : 1.4} fill="#ffffff" />
+          <path d={`M${ex - 8} ${ey - 1} Q${ex} ${ey - 8.5} ${ex + 8} ${ey - 1}`} stroke="#2a2015" strokeWidth="1.9" fill="none" opacity={0.78 * (1 - blink * 0.5)} />
         </g>
       ))}
-      <path d="M-7 -14 L7 -14 L0 2 Z" fill="#e2a23a" stroke="#8a5a10" strokeWidth="1" />
-      <path d="M-14 76 l-4 10 M-8 76 l0 11 M8 76 l0 11 M14 76 l4 10" stroke="#e2a23a" strokeWidth="3" strokeLinecap="round" />
+
+      {/* short dark charcoal curved beak nestled in fluffy white bristles */}
+      <path d="M 10 -34 Q 13 -37 16 -34 L 14 -24 Q 13 -22 11 -24 Z" fill="#23252b" stroke="#0c0d10" strokeWidth="1" />
+      <path d="M 6 -32 Q 10 -30 11 -28 M 20 -32 Q 16 -30 15 -28" stroke="#ffffff" strokeWidth="2.1" strokeLinecap="round" />
     </svg>
   );
 };
